@@ -1,0 +1,74 @@
+{
+    "dev": {
+        "app_function": "qu_security.wsgi.application",
+        "aws_region": "us-east-1",
+        "profile_name": "default",
+        "project_name": "qu-security-backend",
+        "runtime": "python3.11",
+        "s3_bucket": "qu-security-zappa-deployments",
+        "keep_warm": false,
+        "timeout_seconds": 30,
+        "memory_size": 512,
+        "environment_variables": {
+            "DEBUG": "False",
+            "USE_S3": "True",
+            "AWS_STORAGE_BUCKET_NAME": "qu-security-static",
+            "AWS_S3_REGION_NAME": "us-east-1"
+        },
+        "vpc_config": {
+            "SubnetIds": [],
+            "SecurityGroupIds": []
+        },
+        "exclude": [
+            "*.git*",
+            "*.DS_Store*",
+            "*.pyc",
+            "*.pyo",
+            "__pycache__",
+            "node_modules",
+            ".env",
+            "README.md",
+            "*.md",
+            "tests",
+            ".coverage",
+            "coverage.xml"
+        ],
+        "slim_handler": true
+    },
+    "production": {
+        "app_function": "qu_security.wsgi.application",
+        "aws_region": "us-east-1",
+        "profile_name": "default",
+        "project_name": "qu-security-backend-prod",
+        "runtime": "python3.11",
+        "s3_bucket": "qu-security-zappa-deployments-prod",
+        "keep_warm": true,
+        "timeout_seconds": 30,
+        "memory_size": 1024,
+        "environment_variables": {
+            "DEBUG": "False",
+            "USE_S3": "True",
+            "AWS_STORAGE_BUCKET_NAME": "qu-security-static-prod",
+            "AWS_S3_REGION_NAME": "us-east-1"
+        },
+        "vpc_config": {
+            "SubnetIds": [],
+            "SecurityGroupIds": []
+        },
+        "exclude": [
+            "*.git*",
+            "*.DS_Store*",
+            "*.pyc",
+            "*.pyo",
+            "__pycache__",
+            "node_modules",
+            ".env",
+            "README.md",
+            "*.md",
+            "tests",
+            ".coverage",
+            "coverage.xml"
+        ],
+        "slim_handler": true
+    }
+}

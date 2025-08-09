@@ -7,8 +7,12 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .serializers import UserSerializer, UserCreateSerializer, UserUpdateSerializer
-
+from .serializers import (
+    UserSerializer, UserCreateSerializer, UserUpdateSerializer,
+    GuardSerializer, GuardDetailSerializer, ClientSerializer, ClientDetailSerializer, 
+    PropertySerializer, PropertyDetailSerializer, ShiftSerializer, ExpenseSerializer
+)
+from .models import Guard, Client, Property, Shift, Expense
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """Custom JWT token serializer that includes user information"""
@@ -144,3 +148,289 @@ class UserViewSet(viewsets.ModelViewSet):
         """Get current user profile"""
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+
+class GuardViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Guard model with full CRUD operations.
+    
+    list: Returns a list of all guards
+    create: Creates a new guard
+    retrieve: Returns guard details by ID
+    update: Updates guard information (PUT)
+    partial_update: Partially updates guard information (PATCH)
+    destroy: Deletes a guard
+    """
+    queryset = Guard.objects.all().order_by('id')
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Return the appropriate serializer class based on action"""
+        if self.action == 'retrieve':
+            return GuardDetailSerializer
+        return GuardSerializer
+    
+    @swagger_auto_schema(
+        operation_description="Get list of all guards",
+        responses={200: GuardSerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        """Get list of all guards"""
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Create a new guard",
+        request_body=GuardSerializer,
+        responses={
+            201: GuardSerializer,
+            400: 'Bad Request'
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new guard"""
+        return super().create(request, *args, **kwargs)
+
+
+class ClientViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Client model with full CRUD operations.
+    
+    list: Returns a list of all clients
+    create: Creates a new client
+    retrieve: Returns client details by ID
+    update: Updates client information (PUT)
+    partial_update: Partially updates client information (PATCH)
+    destroy: Deletes a client
+    """
+    queryset = Client.objects.all().order_by('id')
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Return the appropriate serializer class based on action"""
+        if self.action == 'retrieve':
+            return ClientDetailSerializer
+        return ClientSerializer
+    
+    @swagger_auto_schema(
+        operation_description="Get list of all clients",
+        responses={200: ClientSerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        """Get list of all clients"""
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Create a new client",
+        request_body=ClientSerializer,
+        responses={
+            201: ClientSerializer,
+            400: 'Bad Request'
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new client"""
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Get properties for a specific client",
+        responses={200: 'List of properties'}
+    )
+    @action(detail=True, methods=['get'])
+    def properties(self, request, pk=None):
+        """Get all properties for a specific client"""
+        client = self.get_object()
+        properties = client.properties.all()
+        from .serializers import PropertySerializer
+        serializer = PropertySerializer(properties, many=True)
+        return Response(serializer.data)
+
+
+class PropertyViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Property model with full CRUD operations.
+    
+    list: Returns a list of all properties
+    create: Creates a new property
+    retrieve: Returns property details by ID
+    update: Updates property information (PUT)
+    partial_update: Partially updates property information (PATCH)
+    destroy: Deletes a property
+    """
+    queryset = Property.objects.all().order_by('id')
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """Return the appropriate serializer class based on action"""
+        if self.action == 'retrieve':
+            return PropertyDetailSerializer
+        return PropertySerializer
+    
+    def perform_create(self, serializer):
+        """Set the owner to the current user's client profile"""
+        try:
+            client = self.request.user.client
+            serializer.save(owner=client)
+        except:
+            # If the user doesn't have a client profile, raise an error
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Only clients can create properties")
+    
+    @swagger_auto_schema(
+        operation_description="Get list of all properties",
+        responses={200: PropertySerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        """Get list of all properties"""
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Create a new property",
+        request_body=PropertySerializer,
+        responses={
+            201: PropertySerializer,
+            400: 'Bad Request'
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new property"""
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Get shifts for a specific property",
+        responses={200: 'List of shifts'}
+    )
+    @action(detail=True, methods=['get'])
+    def shifts(self, request, pk=None):
+        """Get all shifts for a specific property"""
+        property_obj = self.get_object()
+        shifts = property_obj.shifts.all()
+        from .serializers import ShiftSerializer
+        serializer = ShiftSerializer(shifts, many=True)
+        return Response(serializer.data)
+    
+    @swagger_auto_schema(
+        operation_description="Get expenses for a specific property",
+        responses={200: 'List of expenses'}
+    )
+    @action(detail=True, methods=['get'])
+    def expenses(self, request, pk=None):
+        """Get all expenses for a specific property"""
+        property_obj = self.get_object()
+        expenses = property_obj.expenses.all()
+        from .serializers import ExpenseSerializer
+        serializer = ExpenseSerializer(expenses, many=True)
+        return Response(serializer.data)
+
+
+class ShiftViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Shift model with full CRUD operations.
+    
+    list: Returns a list of all shifts
+    create: Creates a new shift
+    retrieve: Returns shift details by ID
+    update: Updates shift information (PUT)
+    partial_update: Partially updates shift information (PATCH)
+    destroy: Deletes a shift
+    """
+    queryset = Shift.objects.all().order_by('-start_time')
+    serializer_class = ShiftSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_description="Get list of all shifts",
+        responses={200: ShiftSerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        """Get list of all shifts"""
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Create a new shift",
+        request_body=ShiftSerializer,
+        responses={
+            201: ShiftSerializer,
+            400: 'Bad Request'
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new shift"""
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Get shifts by guard",
+        responses={200: ShiftSerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'])
+    def by_guard(self, request):
+        """Get shifts filtered by guard ID"""
+        guard_id = request.query_params.get('guard_id')
+        if guard_id:
+            shifts = self.queryset.filter(guard_id=guard_id)
+            serializer = self.get_serializer(shifts, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'guard_id parameter is required'}, status=400)
+    
+    @swagger_auto_schema(
+        operation_description="Get shifts by property",
+        responses={200: ShiftSerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'])
+    def by_property(self, request):
+        """Get shifts filtered by property ID"""
+        property_id = request.query_params.get('property_id')
+        if property_id:
+            shifts = self.queryset.filter(property_id=property_id)
+            serializer = self.get_serializer(shifts, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'property_id parameter is required'}, status=400)
+
+
+class ExpenseViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Expense model with full CRUD operations.
+    
+    list: Returns a list of all expenses
+    create: Creates a new expense
+    retrieve: Returns expense details by ID
+    update: Updates expense information (PUT)
+    partial_update: Partially updates expense information (PATCH)
+    destroy: Deletes an expense
+    """
+    queryset = Expense.objects.all().order_by('-id')
+    serializer_class = ExpenseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_description="Get list of all expenses",
+        responses={200: ExpenseSerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        """Get list of all expenses"""
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Create a new expense",
+        request_body=ExpenseSerializer,
+        responses={
+            201: ExpenseSerializer,
+            400: 'Bad Request'
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """Create a new expense"""
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_description="Get expenses by property",
+        responses={200: ExpenseSerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'])
+    def by_property(self, request):
+        """Get expenses filtered by property ID"""
+        property_id = request.query_params.get('property_id')
+        if property_id:
+            expenses = self.queryset.filter(property_id=property_id)
+            serializer = self.get_serializer(expenses, many=True)
+            return Response(serializer.data)
+        return Response({'error': 'property_id parameter is required'}, status=400)
