@@ -163,6 +163,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+# Static files finders
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+]
+
 # AWS S3 Configuration
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
@@ -179,19 +185,22 @@ AWS_MEDIA_LOCATION = "media"
 AWS_S3_FILE_OVERWRITE = False
 
 # Storage configuration
-if os.environ.get("USE_S3", "False").lower() == "true":
-    # Use S3 for static and media files
+USE_S3 = os.environ.get("USE_S3", "False").lower() == "true"
+
+if USE_S3:
+    # Use S3 for static and media files (production)
     STATICFILES_STORAGE = "core.storages.StaticStorage"
     DEFAULT_FILE_STORAGE = "core.storages.MediaStorage"
 
     STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/"
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_MEDIA_LOCATION}/"
 else:
-    # Local development
+    # Local development - serve files locally
     STATIC_URL = "/static/"
     MEDIA_URL = "/media/"
     MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+# Static files collection directory (used by collectstatic)
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Default primary key field type
@@ -274,17 +283,24 @@ CORS_ALLOW_HEADERS = [
     "x-requested-with",
 ]
 
-# Security settings for production
-if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_REDIRECT_EXEMPT = []
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Security settings - configurable via environment variables
+SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
+SESSION_COOKIE_SECURE = (
+    os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
+)
+CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", "False").lower() == "true"
+SECURE_BROWSER_XSS_FILTER = (
+    os.environ.get("SECURE_BROWSER_XSS_FILTER", "True").lower() == "true"
+)
+SECURE_CONTENT_TYPE_NOSNIFF = (
+    os.environ.get("SECURE_CONTENT_TYPE_NOSNIFF", "True").lower() == "true"
+)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = (
+    os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False").lower() == "true"
+)
+SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "0"))
+SECURE_REDIRECT_EXEMPT = []
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Logging configuration for Lambda
 LOGGING = {

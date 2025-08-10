@@ -26,26 +26,10 @@ ruff check . --fix
 
 # Create local environment file if it doesn't exist
 if [ ! -f .env ]; then
-    echo "📄 Creating local .env file..."
-    cat > .env << 'EOF'
-# Local Development Environment
-SECRET_KEY=dev-secret-key-change-in-production
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-# Local Database
-DB_NAME=qu_security_db
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_HOST=localhost
-DB_PORT=5432
-
-# S3 Configuration (disabled for local dev)
-USE_S3=False
-AWS_STORAGE_BUCKET_NAME=qu-security-static
-AWS_S3_REGION_NAME=us-east-2
-EOF
+    echo "📄 Creating local .env file from template..."
+    cp .env.local .env
     echo "✅ Created .env file for local development"
+    echo "📝 You can customize .env with your local database settings"
 else
     echo "📄 .env file already exists, skipping creation"
 fi
