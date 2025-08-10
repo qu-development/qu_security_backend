@@ -1,7 +1,7 @@
 {
     "dev": {
         "app_function": "qu_security.wsgi.application",
-        "aws_region": "us-east-1",
+        "aws_region": "us-east-2",
         "profile_name": "default",
         "project_name": "qu-security-backend",
         "runtime": "python3.11",
@@ -9,11 +9,20 @@
         "keep_warm": false,
         "timeout_seconds": 30,
         "memory_size": 512,
+        "role_arn": "arn:aws:iam::221082186476:role/qu-security-lambda-role",
+        "django_settings": "qu_security.settings",
         "environment_variables": {
             "DEBUG": "False",
             "USE_S3": "True",
             "AWS_STORAGE_BUCKET_NAME": "qu-security-static",
-            "AWS_S3_REGION_NAME": "us-east-1"
+            "AWS_S3_REGION_NAME": "us-east-2",
+            "SECRET_KEY": "qu-sec-prod-2024-x9k#2m$n5p&q7r*t3u+v4w-x6y!z0a^b%c&d(e)f*g+h-i=j-aurora-v2",
+            "RDS_DB_NAME": "qu_security_db_prod",
+            "RDS_USERNAME": "postgres",
+            "RDS_PASSWORD": "Rylai_BL2711#",
+            "RDS_HOSTNAME": "qu-security-postgres.cjeaecg2g3iy.us-east-2.rds.amazonaws.com",
+            "RDS_PORT": "5432",
+            "ALLOWED_HOSTS": ".execute-api.us-east-2.amazonaws.com"
         },
         "vpc_config": {
             "SubnetIds": [],
@@ -37,7 +46,7 @@
     },
     "production": {
         "app_function": "qu_security.wsgi.application",
-        "aws_region": "us-east-1",
+        "aws_region": "us-east-2",
         "profile_name": "default",
         "project_name": "qu-security-backend-prod",
         "runtime": "python3.11",
@@ -45,11 +54,20 @@
         "keep_warm": true,
         "timeout_seconds": 30,
         "memory_size": 1024,
+        "role_arn": "arn:aws:iam::221082186476:role/qu-security-lambda-role",
+        "django_settings": "qu_security.settings",
         "environment_variables": {
             "DEBUG": "False",
             "USE_S3": "True",
             "AWS_STORAGE_BUCKET_NAME": "qu-security-static-prod",
-            "AWS_S3_REGION_NAME": "us-east-1"
+            "AWS_S3_REGION_NAME": "us-east-2",
+            "SECRET_KEY": "qu-sec-prod-2024-x9k#2m$n5p&q7r*t3u+v4w-x6y!z0a^b%c&d(e)f*g+h-i=j-aurora-v2",
+            "RDS_DB_NAME": "qu_security_db_prod",
+            "RDS_USERNAME": "postgres",
+            "RDS_PASSWORD": "Rylai_BL2711#",
+            "RDS_HOSTNAME": "qu-security-postgres.cjeaecg2g3iy.us-east-2.rds.amazonaws.com",
+            "RDS_PORT": "5432",
+            "ALLOWED_HOSTS": ".execute-api.us-east-2.amazonaws.com"
         },
         "vpc_config": {
             "SubnetIds": [],

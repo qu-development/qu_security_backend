@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Guard, Client, Property, Shift, Expense
+
+from .models import Client, Expense, Guard, Property, Shift
 
 admin.site.register(Guard)
 admin.site.register(Client)

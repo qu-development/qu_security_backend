@@ -44,8 +44,18 @@ venv/
 zappa-*.json
 *.zip
 
+# AWS Setup Files (temporary)
+aws_setup_guide.md
+aws_console_setup_guide.md
+setup_aws_infrastructure*.sh
+upload_static_to_s3.py
+test.txt
+zappa_settings_*.json
+
 # IDE
 .vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
