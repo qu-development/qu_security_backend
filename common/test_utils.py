@@ -2,6 +2,8 @@
 Base test classes and utilities for testing
 """
 
+import secrets
+import string
 from decimal import Decimal
 
 from django.contrib.auth.models import User
@@ -11,20 +13,42 @@ from core.models import Client, Guard, Property
 from permissions.models import PropertyAccess, UserRole
 
 
+def generate_test_password(length=12):
+    """Generate a random password for testing"""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
 class BaseAPITestCase(APITestCase):
     """Base test case with common setup"""
 
     def setUp(self):
         self.client = APIClient()
+        # Store passwords for potential use in tests
+        self.test_passwords = {}
         self.setup_users()
         self.setup_test_data()
 
     def setup_users(self):
         """Create test users with different roles"""
+        # Generate unique passwords for each user
+        admin_password = generate_test_password()
+        manager_password = generate_test_password()
+        client_password = generate_test_password()
+        guard_password = generate_test_password()
+
+        # Store passwords in case tests need them
+        self.test_passwords = {
+            "admin": admin_password,
+            "manager": manager_password,
+            "client": client_password,
+            "guard": guard_password,
+        }
+
         # Admin user
         self.admin_user = User.objects.create_user(
             username="admin",
-            password="testpass123",
+            password=admin_password,
             email="admin@test.com",
             is_superuser=True,
         )
@@ -32,19 +56,19 @@ class BaseAPITestCase(APITestCase):
 
         # Manager user
         self.manager_user = User.objects.create_user(
-            username="manager", password="testpass123", email="manager@test.com"
+            username="manager", password=manager_password, email="manager@test.com"
         )
         UserRole.objects.create(user=self.manager_user, role="manager")
 
         # Client user
         self.client_user = User.objects.create_user(
-            username="client", password="testpass123", email="client@test.com"
+            username="client", password=client_password, email="client@test.com"
         )
         UserRole.objects.create(user=self.client_user, role="client")
 
         # Guard user
         self.guard_user = User.objects.create_user(
-            username="guard", password="testpass123", email="guard@test.com"
+            username="guard", password=guard_password, email="guard@test.com"
         )
         UserRole.objects.create(user=self.guard_user, role="guard")
 
@@ -94,12 +118,14 @@ class TestDataFactory:
     """Factory for creating test data"""
 
     @staticmethod
-    def create_user(username, email=None, **kwargs):
+    def create_user(username, email=None, password=None, **kwargs):
         """Create a test user"""
         if not email:
             email = f"{username}@test.com"
+        if not password:
+            password = generate_test_password()
         return User.objects.create_user(
-            username=username, email=email, password="testpass123", **kwargs
+            username=username, email=email, password=password, **kwargs
         )
 
     @staticmethod

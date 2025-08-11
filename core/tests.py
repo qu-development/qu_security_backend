@@ -21,7 +21,7 @@ class AuthenticationTestCase(BaseAPITestCase):
 
     def test_login_success(self):
         """Test successful login"""
-        login_data = {"username": "admin", "password": "testpass123"}
+        login_data = {"username": "admin", "password": self.test_passwords["admin"]}
         response = self.client.post("/en/api/auth/login/", login_data)
         self.assert_response_success(response)
         self.assertIn("access", response.data)
