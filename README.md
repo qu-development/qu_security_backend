@@ -183,13 +183,13 @@ aws s3 mb s3://qu-security-zappa-deployments
 #### 2. Configurar RDS PostgreSQL
 
 ```bash
-aws rds create-db-instance 
-  --db-instance-identifier qu-security-db 
-  --db-instance-class db.t3.micro 
-  --engine postgres 
-  --master-username postgres 
-  --master-user-password YOUR_PASSWORD 
-  --allocated-storage 20 
+aws rds create-db-instance
+  --db-instance-identifier qu-security-db
+  --db-instance-class db.t3.micro
+  --engine postgres
+  --master-username postgres
+  --master-user-password YOUR_PASSWORD
+  --allocated-storage 20
   --vpc-security-group-ids sg-xxxxxxxxx
 ```
 
@@ -586,7 +586,7 @@ from permissions.models import UserRole
 
 # Crear usuario administrador
 admin_user = User.objects.create_user(
-    username='admin', 
+    username='admin',
     password='admin123',
     email='admin@example.com',
     is_superuser=True
@@ -595,7 +595,7 @@ UserRole.objects.create(user=admin_user, role='admin')
 
 # Crear usuario guardia
 guard_user = User.objects.create_user(
-    username='guard1', 
+    username='guard1',
     password='guard123',
     email='guard1@example.com'
 )
@@ -604,7 +604,7 @@ guard = Guard.objects.create(user=guard_user, phone='123-456-7890')
 
 # Crear usuario cliente
 client_user = User.objects.create_user(
-    username='client1', 
+    username='client1',
     password='client123',
     email='client1@example.com'
 )
@@ -613,7 +613,7 @@ client = Client.objects.create(user=client_user, phone='098-765-4321')
 
 # Crear propiedad
 property = Property.objects.create(
-    owner=client, 
+    owner=client,
     address='123 Main St, City, State',
     description='Oficina principal'
 )

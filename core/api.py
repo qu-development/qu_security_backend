@@ -6,6 +6,15 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from permissions.permissions import (
+    CanCreateExpense,
+    CanCreateShift,
+    IsAdminOrManager,
+    IsClientOwner,
+    IsGuardAssigned,
+)
+from permissions.utils import PermissionManager
+
 from .models import Client, Expense, Guard, Property, Shift
 from .serializers import (
     ClientDetailSerializer,
@@ -158,13 +167,27 @@ class GuardViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Guard.objects.all().order_by("id")
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """Return the appropriate permissions based on action"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            permission_classes = [permissions.IsAuthenticated, IsAdminOrManager]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         """Return the appropriate serializer class based on action"""
         if self.action == "retrieve":
             return GuardDetailSerializer
         return GuardSerializer
+
+    def get_queryset(self):
+        """Filter queryset based on user permissions"""
+        queryset = super().get_queryset()
+        return PermissionManager.filter_queryset_by_permissions(
+            self.request.user, queryset, "guard"
+        )
 
     @swagger_auto_schema(
         operation_description="Get list of all guards",
@@ -197,13 +220,27 @@ class ClientViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Client.objects.all().order_by("id")
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """Return the appropriate permissions based on action"""
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            permission_classes = [permissions.IsAuthenticated, IsAdminOrManager]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         """Return the appropriate serializer class based on action"""
         if self.action == "retrieve":
             return ClientDetailSerializer
         return ClientSerializer
+
+    def get_queryset(self):
+        """Filter queryset based on user permissions"""
+        queryset = super().get_queryset()
+        return PermissionManager.filter_queryset_by_permissions(
+            self.request.user, queryset, "client"
+        )
 
     @swagger_auto_schema(
         operation_description="Get list of all clients",
@@ -250,13 +287,32 @@ class PropertyViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Property.objects.all().order_by("id")
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """Return the appropriate permissions based on action"""
+        if self.action == "create":
+            permission_classes = [permissions.IsAuthenticated]
+        elif (
+            self.action in ["update", "partial_update", "destroy"]
+            or self.action == "retrieve"
+        ):
+            permission_classes = [permissions.IsAuthenticated, IsClientOwner]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def get_serializer_class(self):
         """Return the appropriate serializer class based on action"""
         if self.action == "retrieve":
             return PropertyDetailSerializer
         return PropertySerializer
+
+    def get_queryset(self):
+        """Filter queryset based on user permissions"""
+        queryset = super().get_queryset()
+        return PermissionManager.filter_queryset_by_permissions(
+            self.request.user, queryset, "property"
+        )
 
     def perform_create(self, serializer):
         """Set the owner to the current user's client profile"""
@@ -329,7 +385,23 @@ class ShiftViewSet(viewsets.ModelViewSet):
 
     queryset = Shift.objects.all().order_by("-start_time")
     serializer_class = ShiftSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """Return the appropriate permissions based on action"""
+        if self.action == "create":
+            permission_classes = [permissions.IsAuthenticated, CanCreateShift]
+        elif self.action in ["update", "partial_update", "destroy"]:
+            permission_classes = [permissions.IsAuthenticated, IsGuardAssigned]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """Filter queryset based on user permissions"""
+        queryset = super().get_queryset()
+        return PermissionManager.filter_queryset_by_permissions(
+            self.request.user, queryset, "shift"
+        )
 
     @swagger_auto_schema(
         operation_description="Get list of all shifts",
@@ -357,7 +429,7 @@ class ShiftViewSet(viewsets.ModelViewSet):
         """Get shifts filtered by guard ID"""
         guard_id = request.query_params.get("guard_id")
         if guard_id:
-            shifts = self.queryset.filter(guard_id=guard_id)
+            shifts = self.get_queryset().filter(guard_id=guard_id)
             serializer = self.get_serializer(shifts, many=True)
             return Response(serializer.data)
         return Response({"error": "guard_id parameter is required"}, status=400)
@@ -371,7 +443,7 @@ class ShiftViewSet(viewsets.ModelViewSet):
         """Get shifts filtered by property ID"""
         property_id = request.query_params.get("property_id")
         if property_id:
-            shifts = self.queryset.filter(property_id=property_id)
+            shifts = self.get_queryset().filter(property_id=property_id)
             serializer = self.get_serializer(shifts, many=True)
             return Response(serializer.data)
         return Response({"error": "property_id parameter is required"}, status=400)
@@ -391,7 +463,23 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
     queryset = Expense.objects.all().order_by("-id")
     serializer_class = ExpenseSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        """Return the appropriate permissions based on action"""
+        if self.action == "create":
+            permission_classes = [permissions.IsAuthenticated, CanCreateExpense]
+        elif self.action in ["update", "partial_update", "destroy"]:
+            permission_classes = [permissions.IsAuthenticated, IsClientOwner]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """Filter queryset based on user permissions"""
+        queryset = super().get_queryset()
+        return PermissionManager.filter_queryset_by_permissions(
+            self.request.user, queryset, "expense"
+        )
 
     @swagger_auto_schema(
         operation_description="Get list of all expenses",
@@ -419,7 +507,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         """Get expenses filtered by property ID"""
         property_id = request.query_params.get("property_id")
         if property_id:
-            expenses = self.queryset.filter(property_id=property_id)
+            expenses = self.get_queryset().filter(property_id=property_id)
             serializer = self.get_serializer(expenses, many=True)
             return Response(serializer.data)
         return Response({"error": "property_id parameter is required"}, status=400)

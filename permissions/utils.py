@@ -175,6 +175,44 @@ class PermissionManager:
         return access
 
     @staticmethod
+    def has_role(user: User, role: str) -> bool:
+        """Check if user has a specific role"""
+        try:
+            user_role = UserRole.objects.get(user=user, is_active=True)
+            return user_role.role == role
+        except UserRole.DoesNotExist:
+            return False
+
+    @staticmethod
+    def has_property_access(
+        user: User, property_obj: Property, access_type: str
+    ) -> bool:
+        """Check if user has specific access to a property"""
+
+        # Superusers and admins have all access
+        if user.is_superuser or user.groups.filter(name="Administrators").exists():
+            return True
+
+        # Managers have all access
+        if user.groups.filter(name="Managers").exists():
+            return True
+
+        # Check if user owns the property (for clients)
+        if access_type == "owner":
+            try:
+                client = Client.objects.get(user=user)
+                return property_obj.owner == client
+            except Client.DoesNotExist:
+                return False
+
+        # Check PropertyAccess table for specific access
+        access = PropertyAccess.objects.filter(
+            user=user, property=property_obj, access_type=access_type, is_active=True
+        ).exists()
+
+        return access
+
+    @staticmethod
     def has_resource_permission(
         user: User, resource_type: str, action: str, resource_id: int | None = None
     ) -> bool:
