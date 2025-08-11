@@ -16,6 +16,7 @@ Including another URLconf
 """
 
 from django.conf import settings
+from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.shortcuts import redirect
@@ -45,8 +46,14 @@ def redirect_to_swagger(request):
 
 
 urlpatterns = [
+    # Language selection - outside i18n_patterns to work for all languages
+    path("i18n/", include("django.conf.urls.i18n")),
     # Root URL redirects to Swagger
     path("", redirect_to_swagger, name="root-redirect"),
+]
+
+# Internationalized URL patterns
+urlpatterns += i18n_patterns(
     # Admin panel
     path("admin/", admin.site.urls),
     # API endpoints
@@ -63,7 +70,7 @@ urlpatterns = [
         name="schema-swagger-ui",
     ),
     path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
-]
+)
 
 # Serve static and media files in development
 if settings.DEBUG:

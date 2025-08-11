@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from .models import Client, Expense, Guard, Property, Shift
@@ -47,7 +48,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Validate that passwords match"""
         if attrs["password"] != attrs["password_confirm"]:
-            raise serializers.ValidationError("Passwords don't match")
+            raise serializers.ValidationError(_("Passwords don't match"))
         return attrs
 
     def create(self, validated_data):
@@ -78,12 +79,12 @@ class LoginSerializer(serializers.Serializer):
         if username and password:
             user = authenticate(username=username, password=password)
             if not user:
-                raise serializers.ValidationError("Invalid credentials")
+                raise serializers.ValidationError(_("Invalid credentials"))
             if not user.is_active:
-                raise serializers.ValidationError("User account is disabled")
+                raise serializers.ValidationError(_("User account is disabled"))
             attrs["user"] = user
         else:
-            raise serializers.ValidationError("Must include username and password")
+            raise serializers.ValidationError(_("Must include username and password"))
 
         return attrs
 
