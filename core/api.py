@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from common.mixins import BulkActionMixin, FilterMixin, SoftDeleteMixin
 from permissions.permissions import (
     CanCreateExpense,
     CanCreateShift,
@@ -154,7 +155,9 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class GuardViewSet(viewsets.ModelViewSet):
+class GuardViewSet(
+    SoftDeleteMixin, FilterMixin, BulkActionMixin, viewsets.ModelViewSet
+):
     """
     ViewSet for managing Guard model with full CRUD operations.
 
@@ -207,7 +210,9 @@ class GuardViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
 
-class ClientViewSet(viewsets.ModelViewSet):
+class ClientViewSet(
+    SoftDeleteMixin, FilterMixin, BulkActionMixin, viewsets.ModelViewSet
+):
     """
     ViewSet for managing Client model with full CRUD operations.
 
@@ -274,7 +279,9 @@ class ClientViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class PropertyViewSet(viewsets.ModelViewSet):
+class PropertyViewSet(
+    SoftDeleteMixin, FilterMixin, BulkActionMixin, viewsets.ModelViewSet
+):
     """
     ViewSet for managing Property model with full CRUD operations.
 
@@ -371,7 +378,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class ShiftViewSet(viewsets.ModelViewSet):
+class ShiftViewSet(
+    SoftDeleteMixin, FilterMixin, BulkActionMixin, viewsets.ModelViewSet
+):
     """
     ViewSet for managing Shift model with full CRUD operations.
 
@@ -449,7 +458,9 @@ class ShiftViewSet(viewsets.ModelViewSet):
         return Response({"error": "property_id parameter is required"}, status=400)
 
 
-class ExpenseViewSet(viewsets.ModelViewSet):
+class ExpenseViewSet(
+    SoftDeleteMixin, FilterMixin, BulkActionMixin, viewsets.ModelViewSet
+):
     """
     ViewSet for managing Expense model with full CRUD operations.
 

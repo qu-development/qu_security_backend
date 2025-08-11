@@ -1,25 +1,16 @@
 from django.contrib.auth.models import User
 from django.db import models
 
+from common.constants import ACCESS_TYPES, ACTION_TYPES, RESOURCE_TYPES, USER_ROLES
+from common.models import BaseModel
 from core.models import Property
 
 
-class UserRole(models.Model):
+class UserRole(BaseModel):
     """Extended user roles for fine-grained permission control"""
 
-    ROLE_CHOICES = [
-        ("admin", "Administrator"),
-        ("manager", "Manager"),
-        ("client", "Client"),
-        ("guard", "Guard"),
-        ("supervisor", "Supervisor"),
-    ]
-
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="role")
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    role = models.CharField(max_length=20, choices=USER_ROLES)
 
     class Meta:
         verbose_name = "User Role"
@@ -33,25 +24,8 @@ class UserRole(models.Model):
         return f"{self.user.username} - {self.get_role_display()}"
 
 
-class ResourcePermission(models.Model):
+class ResourcePermission(BaseModel):
     """Custom permissions for specific resources"""
-
-    RESOURCE_TYPES = [
-        ("property", "Property"),
-        ("shift", "Shift"),
-        ("expense", "Expense"),
-        ("guard", "Guard"),
-        ("client", "Client"),
-    ]
-
-    ACTION_TYPES = [
-        ("create", "Create"),
-        ("read", "Read"),
-        ("update", "Update"),
-        ("delete", "Delete"),
-        ("approve", "Approve"),
-        ("assign", "Assign"),
-    ]
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="resource_permissions"
@@ -66,7 +40,6 @@ class ResourcePermission(models.Model):
     )
     granted_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
-    is_active = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Resource Permission"
@@ -84,15 +57,8 @@ class ResourcePermission(models.Model):
         )
 
 
-class PropertyAccess(models.Model):
+class PropertyAccess(BaseModel):
     """Specific property access permissions for guards and clients"""
-
-    ACCESS_TYPES = [
-        ("owner", "Owner"),
-        ("assigned_guard", "Assigned Guard"),
-        ("supervisor", "Supervisor"),
-        ("viewer", "Viewer"),
-    ]
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="property_access"
@@ -110,7 +76,6 @@ class PropertyAccess(models.Model):
         User, on_delete=models.CASCADE, related_name="granted_property_access"
     )
     granted_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Property Access"
@@ -125,10 +90,10 @@ class PropertyAccess(models.Model):
         return f"{self.user.username} - {self.access_type} access to {self.property.address}"
 
 
-class PermissionLog(models.Model):
+class PermissionLog(BaseModel):
     """Log of permission changes for auditing"""
 
-    ACTION_TYPES = [
+    LOG_ACTION_TYPES = [
         ("granted", "Permission Granted"),
         ("revoked", "Permission Revoked"),
         ("modified", "Permission Modified"),
@@ -140,7 +105,7 @@ class PermissionLog(models.Model):
     )
     permission_type = models.CharField(max_length=50)
     permission_details = models.JSONField()
-    action = models.CharField(max_length=10, choices=ACTION_TYPES)
+    action = models.CharField(max_length=10, choices=LOG_ACTION_TYPES)
     performed_by = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="performed_permission_changes"
     )

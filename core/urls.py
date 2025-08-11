@@ -29,8 +29,8 @@ urlpatterns = [
     # Authentication endpoints
     path("auth/login/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    # Test translations endpoint
-    path("test-translations/", views.test_translations, name="test-translations"),
-    # User CRUD endpoints
+    # Health check endpoint
+    path("health/", views.health_check, name="health-check"),
+    # API endpoints
     path("", include(router.urls)),
 ]

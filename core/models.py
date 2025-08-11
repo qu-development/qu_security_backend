@@ -5,8 +5,10 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from common.models import BaseModel
 
-class Guard(models.Model):
+
+class Guard(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="guard")
     phone = models.CharField(max_length=20, blank=True, verbose_name=_("Phone"))
 
@@ -18,7 +20,7 @@ class Guard(models.Model):
         return f"{self.user.username} - {_('Guard')}"
 
 
-class Client(models.Model):
+class Client(BaseModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="client")
     phone = models.CharField(max_length=20, blank=True, verbose_name=_("Phone"))
     balance = models.DecimalField(
@@ -37,7 +39,7 @@ class Client(models.Model):
         return f"{self.user.username} - {_('Client')}"
 
 
-class Property(models.Model):
+class Property(BaseModel):
     owner = models.ForeignKey(
         Client,
         on_delete=models.CASCADE,
@@ -57,7 +59,7 @@ class Property(models.Model):
         return f"{self.address} - {self.owner.user.username}"
 
 
-class Shift(models.Model):
+class Shift(BaseModel):
     guard = models.ForeignKey(
         Guard, on_delete=models.CASCADE, related_name="shifts", verbose_name=_("Guard")
     )
@@ -84,7 +86,7 @@ class Shift(models.Model):
         }
 
 
-class Expense(models.Model):
+class Expense(BaseModel):
     property = models.ForeignKey(
         Property,
         on_delete=models.CASCADE,

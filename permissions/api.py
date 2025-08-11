@@ -8,6 +8,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from common.constants import ACCESS_TYPES, ACTION_TYPES, RESOURCE_TYPES, USER_ROLES
 from core.models import Property
 
 from .models import PermissionLog, PropertyAccess, ResourcePermission, UserRole
@@ -141,11 +142,11 @@ class AdminPermissionAPI(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if role not in dict(UserRole.ROLE_CHOICES):
+        if role not in dict(USER_ROLES):
             return Response(
                 {
                     "error": "Invalid role",
-                    "valid_roles": [choice[0] for choice in UserRole.ROLE_CHOICES],
+                    "valid_roles": [choice[0] for choice in USER_ROLES],
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -212,24 +213,20 @@ class AdminPermissionAPI(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if resource_type not in dict(ResourcePermission.RESOURCE_TYPES):
+        if resource_type not in dict(RESOURCE_TYPES):
             return Response(
                 {
                     "error": "Invalid resource_type",
-                    "valid_types": [
-                        choice[0] for choice in ResourcePermission.RESOURCE_TYPES
-                    ],
+                    "valid_types": [choice[0] for choice in RESOURCE_TYPES],
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if action not in dict(ResourcePermission.ACTION_TYPES):
+        if action not in dict(ACTION_TYPES):
             return Response(
                 {
                     "error": "Invalid action",
-                    "valid_actions": [
-                        choice[0] for choice in ResourcePermission.ACTION_TYPES
-                    ],
+                    "valid_actions": [choice[0] for choice in ACTION_TYPES],
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -376,13 +373,11 @@ class AdminPermissionAPI(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if access_type not in dict(PropertyAccess.ACCESS_TYPES):
+        if access_type not in dict(ACCESS_TYPES):
             return Response(
                 {
                     "error": "Invalid access_type",
-                    "valid_types": [
-                        choice[0] for choice in PropertyAccess.ACCESS_TYPES
-                    ],
+                    "valid_types": [choice[0] for choice in ACCESS_TYPES],
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -806,20 +801,17 @@ class AdminPermissionAPI(viewsets.ViewSet):
         return Response(
             {
                 "user_roles": [
-                    {"value": choice[0], "label": choice[1]}
-                    for choice in UserRole.ROLE_CHOICES
+                    {"value": choice[0], "label": choice[1]} for choice in USER_ROLES
                 ],
                 "resource_types": [
                     {"value": choice[0], "label": choice[1]}
-                    for choice in ResourcePermission.RESOURCE_TYPES
+                    for choice in RESOURCE_TYPES
                 ],
                 "actions": [
-                    {"value": choice[0], "label": choice[1]}
-                    for choice in ResourcePermission.ACTION_TYPES
+                    {"value": choice[0], "label": choice[1]} for choice in ACTION_TYPES
                 ],
                 "access_types": [
-                    {"value": choice[0], "label": choice[1]}
-                    for choice in PropertyAccess.ACCESS_TYPES
+                    {"value": choice[0], "label": choice[1]} for choice in ACCESS_TYPES
                 ],
                 "permission_types": [
                     {"value": "user_role", "label": "User Role"},
