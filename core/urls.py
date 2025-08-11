@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from . import views
 from .api import (
     ClientViewSet,
     CustomTokenObtainPairView,
@@ -28,6 +29,8 @@ urlpatterns = [
     # Authentication endpoints
     path("auth/login/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    # Test translations endpoint
+    path("test-translations/", views.test_translations, name="test-translations"),
     # User CRUD endpoints
     path("", include(router.urls)),
 ]
