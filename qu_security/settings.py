@@ -261,10 +261,13 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://yourfrontend.com",  # Replace with your actual frontend domain
 ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://(localhost|127\.0\.0\.1):\d+$",
     r"^https://.*\.amazonaws\.com$",
     r"^https://.*\.cloudfront\.net$",
 ]
