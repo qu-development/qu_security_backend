@@ -25,7 +25,8 @@ class AdminPermissionAPI(viewsets.ViewSet):
         """Only superusers and admin role users can access"""
         permission_classes = [permissions.IsAuthenticated]
 
-        if not (
+        # If user is authenticated, check for admin privileges
+        if self.request.user.is_authenticated and not (
             self.request.user.is_superuser
             or UserRole.objects.filter(
                 user=self.request.user, role="admin", is_active=True
@@ -37,11 +38,39 @@ class AdminPermissionAPI(viewsets.ViewSet):
 
     def check_admin_permission(self):
         """Check if user has admin permissions"""
+        if not self.request.user.is_authenticated:
+            return False
+
         return (
             self.request.user.is_superuser
             or UserRole.objects.filter(
                 user=self.request.user, role="admin", is_active=True
             ).exists()
+        )
+
+    def list(self, request):
+        """Default list endpoint for admin permissions API"""
+        if not self.check_admin_permission():
+            return Response(
+                {"error": "Admin privileges required"}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        return Response(
+            {
+                "message": "Admin Permission Management API",
+                "available_endpoints": [
+                    "list-users-with-permissions/",
+                    "assign-user-role/",
+                    "grant-resource-permission/",
+                    "revoke-resource-permission/",
+                    "grant-property-access/",
+                    "revoke-property-access/",
+                    "permission-audit-log/",
+                    "bulk-permission-update/",
+                    "available-options/",
+                ],
+                "description": "API for managing user permissions, roles, and access controls",
+            }
         )
 
     @action(detail=False, methods=["get"])

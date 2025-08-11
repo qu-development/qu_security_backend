@@ -59,16 +59,16 @@ class PermissionAPITestCase(BaseAPITestCase):
     def test_admin_can_access_permission_api(self):
         """Test that admin can access permission management API"""
         self.authenticate_as(self.admin_user)
-        response = self.client.get("/api/v1/permissions/admin/")
+        response = self.client.get("/en/api/v1/permissions/admin/")
         self.assert_response_success(response)
 
     def test_non_admin_cannot_access_permission_api(self):
         """Test that non-admin cannot access permission management API"""
         self.authenticate_as(self.client_user)
-        response = self.client.get("/api/v1/permissions/admin/")
+        response = self.client.get("/en/api/v1/permissions/admin/")
         self.assert_response_error(response, 403)
 
     def test_permission_api_requires_authentication(self):
         """Test that permission API requires authentication"""
-        response = self.client.get("/api/v1/permissions/admin/")
+        response = self.client.get("/en/api/v1/permissions/admin/")
         self.assert_response_error(response, 401)

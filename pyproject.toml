@@ -123,3 +123,28 @@ section-order = [
 
 # Migration files are auto-generated
 "**/migrations/**" = ["ALL"]
+
+[tool.bandit]
+# Bandit security scanner configuration
+exclude_dirs = [
+    "tests",
+    "migrations",
+    ".venv",
+    "venv",
+    "staticfiles",
+    "__pycache__"
+]
+
+# Skip certain test IDs that are common false positives in Django projects
+skips = [
+    "B101",  # assert_used - common in tests and Django's debug mode
+    "B106",  # hardcoded_password_funcarg - common in test files
+    "B601",  # paramiko_calls - if using paramiko legitimately
+    "B324",  # hashlib_insecure_functions - Django uses some for non-crypto purposes
+]
+
+# Confidence levels: LOW, MEDIUM, HIGH
+confidence = "MEDIUM"
+
+# Severity levels: LOW, MEDIUM, HIGH
+severity = "MEDIUM"

@@ -35,3 +35,13 @@ repos:
           --disable-error-code=list-item
         ]
         exclude: ^(migrations/|core/management/commands/)
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [
+          --configfile, "pyproject.toml",
+          --format, "custom",
+          --msg-template, "{abspath}:{line}: {test_id}[bandit]: {severity}: {msg}"
+        ]
