@@ -51,6 +51,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # API endpoints
     path("api/", include("core.urls")),
+    # Permission-secured endpoints
+    path("", include("permissions.urls")),
     # Swagger/OpenAPI documentation
     path(
         "swagger<format>/", schema_view.without_ui(cache_timeout=0), name="schema-json"

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "storages",  # For S3 storage
     "corsheaders",  # For CORS handling
     "core",
+    "permissions",  # Custom permissions app
 ]
 
 MIDDLEWARE = [
