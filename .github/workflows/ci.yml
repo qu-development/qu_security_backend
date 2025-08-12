@@ -176,8 +176,10 @@ jobs:
 
     - name: Deploy with Zappa
       run: |
-        # Use 'update' if function exists, 'deploy' if it's first time
-        zappa update dev || zappa deploy dev
+        # Set VIRTUAL_ENV to trick Zappa into thinking we're in a virtual environment
+        export VIRTUAL_ENV="$pythonLocation"
+        # Since the application already exists, use update
+        zappa update dev
 
     - name: Run post-deployment tasks
       run: |
