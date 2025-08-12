@@ -176,7 +176,8 @@ jobs:
 
     - name: Deploy with Zappa
       run: |
-        zappa update dev
+        # Use 'update' if function exists, 'deploy' if it's first time
+        zappa update dev || zappa deploy dev
 
     - name: Run post-deployment tasks
       run: |
