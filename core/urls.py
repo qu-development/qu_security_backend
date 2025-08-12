@@ -31,6 +31,8 @@ urlpatterns = [
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     # Health check endpoint
     path("health/", views.health_check, name="health-check"),
+    # JWT Demo endpoint
+    path("demo/", views.jwt_demo, name="jwt-demo"),
     # API endpoints
     path("", include(router.urls)),
 ]

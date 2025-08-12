@@ -287,6 +287,10 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.cloudfront\.net$",
 ]
 
+# Allow all origins in development for file:// protocol and localhost testing
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_HEADERS = [

@@ -137,7 +137,7 @@ class AdminPermissionAPI(viewsets.ViewSet):
                         "id": access.id,
                         "property_id": access.property.id,
                         "property_address": access.property.address,
-                        "property_name": access.property.name,
+                        "property_owner": access.property.owner.user.username,
                         "access_type": access.access_type,
                         "can_create_shifts": access.can_create_shifts,
                         "can_edit_shifts": access.can_edit_shifts,
@@ -471,7 +471,6 @@ class AdminPermissionAPI(viewsets.ViewSet):
                 permission_details={
                     "property_id": property_id,
                     "property_address": property_obj.address,
-                    "property_name": property_obj.name,
                     "access_type": access_type,
                     "permissions": permissions,
                 },
@@ -482,12 +481,11 @@ class AdminPermissionAPI(viewsets.ViewSet):
 
         return Response(
             {
-                "message": f"{access_type.title()} access to {property_obj.name} granted to {user.username}",
+                "message": f"{access_type.title()} access to {property_obj.address} granted to {user.username}",
                 "access_id": property_access.id,
                 "user_id": user.id,
                 "username": user.username,
                 "property_id": property_id,
-                "property_name": property_obj.name,
                 "property_address": property_obj.address,
                 "access_type": access_type,
                 "permissions": {
@@ -535,7 +533,6 @@ class AdminPermissionAPI(viewsets.ViewSet):
                 permission_details={
                     "property_id": property_access.property.id,
                     "property_address": property_access.property.address,
-                    "property_name": property_access.property.name,
                     "access_type": property_access.access_type,
                 },
                 action="revoked",
@@ -545,12 +542,12 @@ class AdminPermissionAPI(viewsets.ViewSet):
 
         return Response(
             {
-                "message": f"{property_access.access_type.title()} access to {property_access.property.name} revoked from {property_access.user.username}",
+                "message": f"{property_access.access_type.title()} access to {property_access.property.address} revoked from {property_access.user.username}",
                 "access_id": access_id,
                 "user_id": property_access.user.id,
                 "username": property_access.user.username,
                 "property_id": property_access.property.id,
-                "property_name": property_access.property.name,
+                "property_address": property_access.property.address,
             }
         )
 
