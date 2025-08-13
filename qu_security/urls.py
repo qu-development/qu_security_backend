@@ -58,6 +58,8 @@ urlpatterns += i18n_patterns(
     path("admin/", admin.site.urls),
     # API endpoints
     path("api/", include("core.urls")),
+    # Common endpoints
+    path("api/common/", include("common.urls")),
     # Permission-secured endpoints
     path("", include("permissions.urls")),
     # Swagger/OpenAPI documentation

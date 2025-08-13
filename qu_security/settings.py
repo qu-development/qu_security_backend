@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "drf_yasg",
     "storages",  # For S3 storage
     "corsheaders",  # For CORS handling
+    "solo",  # django-solo for singleton models
     "common",  # Common utilities app
     "core",
     "permissions",  # Custom permissions app
