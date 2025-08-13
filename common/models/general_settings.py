@@ -30,4 +30,4 @@ class GeneralSettings(SingletonModel, BaseModel):
         verbose_name_plural = _("General Settings")
 
     def __str__(self):  # pragma: no cover - simple representation
-        return _("General Settings")
+        return "General Settings"

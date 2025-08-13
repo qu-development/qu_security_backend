@@ -3,7 +3,15 @@ from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from .models import Client, Expense, Guard, Property, Shift
+from .models import (
+    Client,
+    Expense,
+    Guard,
+    GuardPropertyTariff,
+    Property,
+    PropertyTypeOfService,
+    Shift,
+)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -96,7 +104,7 @@ class GuardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Guard
-        fields = ["id", "user", "user_details", "phone"]
+        fields = ["id", "user", "user_details", "phone", "ssn", "address"]
         read_only_fields = ["id"]
 
 
@@ -108,7 +116,15 @@ class GuardDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Guard
-        fields = ["id", "user", "user_details", "phone", "shifts_count"]
+        fields = [
+            "id",
+            "user",
+            "user_details",
+            "phone",
+            "ssn",
+            "address",
+            "shifts_count",
+        ]
         read_only_fields = ["id"]
 
     def get_shifts_count(self, obj):
@@ -159,14 +175,40 @@ class ClientDetailSerializer(serializers.ModelSerializer):
         return total
 
 
+class PropertyTypeOfServiceSerializer(serializers.ModelSerializer):
+    """Serializer for PropertyTypeOfService model"""
+
+    class Meta:
+        model = PropertyTypeOfService
+        fields = ["id", "name"]
+        read_only_fields = ["id"]
+
+
 class PropertySerializer(serializers.ModelSerializer):
     """Serializer for Property model"""
 
     owner_details = ClientSerializer(source="owner", read_only=True)
+    types_of_service = serializers.PrimaryKeyRelatedField(
+        queryset=PropertyTypeOfService.objects.all(), many=True, required=False
+    )
+    types_of_service_details = PropertyTypeOfServiceSerializer(
+        source="types_of_service", many=True, read_only=True
+    )
 
     class Meta:
         model = Property
-        fields = ["id", "owner", "owner_details", "address", "total_hours"]
+        fields = [
+            "id",
+            "owner",
+            "owner_details",
+            "name",
+            "address",
+            "types_of_service",
+            "types_of_service_details",
+            "monthly_rate",
+            "contract_start_date",
+            "total_hours",
+        ]
         read_only_fields = ["id", "owner"]
 
 
@@ -177,6 +219,12 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     shifts_count = serializers.SerializerMethodField()
     expenses_count = serializers.SerializerMethodField()
     total_expenses_amount = serializers.SerializerMethodField()
+    types_of_service = serializers.PrimaryKeyRelatedField(
+        queryset=PropertyTypeOfService.objects.all(), many=True, required=False
+    )
+    types_of_service_details = PropertyTypeOfServiceSerializer(
+        source="types_of_service", many=True, read_only=True
+    )
 
     class Meta:
         model = Property
@@ -184,7 +232,12 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
             "id",
             "owner",
             "owner_details",
+            "name",
             "address",
+            "types_of_service",
+            "types_of_service_details",
+            "monthly_rate",
+            "contract_start_date",
             "total_hours",
             "shifts_count",
             "expenses_count",
@@ -236,4 +289,23 @@ class ExpenseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Expense
         fields = ["id", "property", "property_details", "description", "amount"]
+        read_only_fields = ["id"]
+
+
+class GuardPropertyTariffSerializer(serializers.ModelSerializer):
+    """Serializer for GuardPropertyTariff model"""
+
+    guard_details = GuardSerializer(source="guard", read_only=True)
+    property_details = PropertySerializer(source="property", read_only=True)
+
+    class Meta:
+        model = GuardPropertyTariff
+        fields = [
+            "id",
+            "guard",
+            "guard_details",
+            "property",
+            "property_details",
+            "rate",
+        ]
         read_only_fields = ["id"]

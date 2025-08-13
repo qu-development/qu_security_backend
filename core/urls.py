@@ -7,7 +7,9 @@ from .api import (
     ClientViewSet,
     CustomTokenObtainPairView,
     ExpenseViewSet,
+    GuardPropertyTariffViewSet,
     GuardViewSet,
+    PropertyTypeOfServiceViewSet,
     PropertyViewSet,
     ShiftViewSet,
     UserViewSet,
@@ -23,6 +25,16 @@ router.register(r"clients", ClientViewSet, basename="client")
 router.register(r"properties", PropertyViewSet, basename="property")
 router.register(r"shifts", ShiftViewSet, basename="shift")
 router.register(r"expenses", ExpenseViewSet, basename="expense")
+router.register(
+    r"property-types-of-service",
+    PropertyTypeOfServiceViewSet,
+    basename="property-type-of-service",
+)
+router.register(
+    r"guard-property-tariffs",
+    GuardPropertyTariffViewSet,
+    basename="guard-property-tariff",
+)
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [

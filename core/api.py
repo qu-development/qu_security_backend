@@ -16,15 +16,25 @@ from permissions.permissions import (
 )
 from permissions.utils import PermissionManager
 
-from .models import Client, Expense, Guard, Property, Shift
+from .models import (
+    Client,
+    Expense,
+    Guard,
+    GuardPropertyTariff,
+    Property,
+    PropertyTypeOfService,
+    Shift,
+)
 from .serializers import (
     ClientDetailSerializer,
     ClientSerializer,
     ExpenseSerializer,
     GuardDetailSerializer,
+    GuardPropertyTariffSerializer,
     GuardSerializer,
     PropertyDetailSerializer,
     PropertySerializer,
+    PropertyTypeOfServiceSerializer,
     ShiftSerializer,
     UserCreateSerializer,
     UserSerializer,
@@ -501,6 +511,162 @@ class ShiftViewSet(
         if property_id:
             shifts = self.get_queryset().filter(property_id=property_id)
             serializer = self.get_serializer(shifts, many=True)
+            return Response(serializer.data)
+        return Response({"error": "property_id parameter is required"}, status=400)
+
+
+class PropertyTypeOfServiceViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only ViewSet for PropertyTypeOfService model.
+
+    list: Returns a list of all property types of service
+    retrieve: Returns details for a property type of service by ID
+    """
+
+    queryset = PropertyTypeOfService.objects.all().order_by("name")
+    serializer_class = PropertyTypeOfServiceSerializer
+
+    def get_permissions(self):
+        """Require authentication for all actions"""
+        permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    @swagger_auto_schema(
+        operation_description="Get list of all property types of service",
+        responses={200: PropertyTypeOfServiceSerializer(many=True)},
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+class GuardPropertyTariffViewSet(
+    SoftDeleteMixin, FilterMixin, BulkActionMixin, viewsets.ModelViewSet
+):
+    """
+    ViewSet for managing GuardPropertyTariff with full CRUD operations.
+
+    list: Returns a list of tariffs filtered by user role
+    create: Creates a new tariff for a guard at a property
+    retrieve: Returns tariff details by ID
+    update: Updates tariff information (PUT)
+    partial_update: Partially updates tariff information (PATCH)
+    destroy: Deletes a tariff
+    by_guard: Returns tariffs filtered by guard_id
+    by_property: Returns tariffs filtered by property_id
+    """
+
+    queryset = GuardPropertyTariff.objects.all().order_by("-id")
+    serializer_class = GuardPropertyTariffSerializer
+
+    def get_permissions(self):
+        """Return permissions based on action"""
+        if (
+            self.action in ["update", "partial_update", "destroy"]
+            or self.action == "retrieve"
+        ):
+            permission_classes = [permissions.IsAuthenticated, IsClientOwner]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """Filter queryset based on user role and ownership"""
+        qs = super().get_queryset()
+        user = self.request.user
+
+        # Admins and managers see everything
+        if (
+            user.is_superuser
+            or user.groups.filter(name__in=["Administrators", "Managers"]).exists()
+        ):
+            return qs
+
+        # Clients: tariffs for their properties only
+        from core.models import Client as ClientModel
+        from core.models import Guard as GuardModel
+
+        client = ClientModel.objects.filter(user=user).first()
+        if client:
+            return qs.filter(property__owner=client)
+
+        # Guards: tariffs assigned to them
+        guard = GuardModel.objects.filter(user=user).first()
+        if guard:
+            return qs.filter(guard=guard)
+
+        # Others: none
+        return qs.none()
+
+    def perform_create(self, serializer):
+        """Ensure only property owners or admins/managers can create tariffs"""
+        user = self.request.user
+
+        # Allow admins/managers
+        if (
+            user.is_superuser
+            or user.groups.filter(name__in=["Administrators", "Managers"]).exists()
+        ):
+            serializer.save()
+            return
+
+        # Clients must own the property
+        from rest_framework.exceptions import ValidationError
+
+        from core.models import Client as ClientModel
+
+        client = ClientModel.objects.filter(user=user).first()
+        if not client:
+            raise ValidationError("Only clients or managers can create tariffs")
+
+        prop = serializer.validated_data.get("property")
+        if not prop or prop.owner != client:
+            raise ValidationError("You can only create tariffs for your own properties")
+
+        # Optional: enforce uniqueness early (DB constraint also exists)
+        guard = serializer.validated_data.get("guard")
+        if GuardPropertyTariff.objects.filter(guard=guard, property=prop).exists():
+            raise ValidationError("A tariff for this guard and property already exists")
+
+        serializer.save()
+
+    @swagger_auto_schema(
+        operation_description="Get list of all guard-property tariffs",
+        responses={200: GuardPropertyTariffSerializer(many=True)},
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Create a new guard-property tariff",
+        request_body=GuardPropertyTariffSerializer,
+        responses={201: GuardPropertyTariffSerializer, 400: "Bad Request"},
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Get tariffs by guard",
+        responses={200: GuardPropertyTariffSerializer(many=True)},
+    )
+    @action(detail=False, methods=["get"])
+    def by_guard(self, request):
+        guard_id = request.query_params.get("guard_id")
+        if guard_id:
+            tariffs = self.get_queryset().filter(guard_id=guard_id)
+            serializer = self.get_serializer(tariffs, many=True)
+            return Response(serializer.data)
+        return Response({"error": "guard_id parameter is required"}, status=400)
+
+    @swagger_auto_schema(
+        operation_description="Get tariffs by property",
+        responses={200: GuardPropertyTariffSerializer(many=True)},
+    )
+    @action(detail=False, methods=["get"])
+    def by_property(self, request):
+        property_id = request.query_params.get("property_id")
+        if property_id:
+            tariffs = self.get_queryset().filter(property_id=property_id)
+            serializer = self.get_serializer(tariffs, many=True)
             return Response(serializer.data)
         return Response({"error": "property_id parameter is required"}, status=400)
 
