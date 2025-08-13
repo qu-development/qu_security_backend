@@ -248,6 +248,56 @@ class ClientCreateSerializer(serializers.Serializer):
         return ClientSerializer(instance).data
 
 
+class ClientUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating a Client and its related User fields"""
+
+    first_name = serializers.CharField(
+        source="user.first_name", required=False, allow_blank=True
+    )
+    last_name = serializers.CharField(
+        source="user.last_name", required=False, allow_blank=True
+    )
+    email = serializers.EmailField(source="user.email", required=False)
+
+    class Meta:
+        model = Client
+        fields = ["first_name", "last_name", "email", "phone"]
+
+    def validate(self, attrs):
+        user_data = attrs.get("user", {})
+        email = user_data.get("email")
+        if email:
+            qs = User.objects.filter(email__iexact=email)
+            if self.instance and self.instance.user_id:
+                qs = qs.exclude(pk=self.instance.user_id)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    {"email": _("Email is already in use.")}
+                )
+        return attrs
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop("user", {})
+
+        # Update client fields
+        phone = validated_data.get("phone", serializers.empty)
+        if phone is not serializers.empty:
+            instance.phone = phone
+        instance.save()
+
+        # Update related user fields
+        user = instance.user
+        for field in ("first_name", "last_name", "email"):
+            if field in user_data:
+                setattr(user, field, user_data[field])
+        user.save()
+        return instance
+
+    def to_representation(self, instance):
+        # Return the standard client representation
+        return ClientSerializer(instance).data
+
+
 class PropertyTypeOfServiceSerializer(serializers.ModelSerializer):
     """Serializer for PropertyTypeOfService model"""
 

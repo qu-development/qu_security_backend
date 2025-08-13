@@ -97,18 +97,18 @@ jobs:
         echo "DB_PORT=5432" >> .env
         echo "USE_S3=False" >> .env
 
-    - name: Run Django migrations
+    - name: Run database migrations
       run: |
         python manage.py migrate
 
-    - name: Run Django tests
+    - name: Run pytest
       run: |
-        python manage.py test
+        pytest -q
 
     - name: Generate coverage report
       run: |
         pip install coverage
-        coverage run --source='.' manage.py test
+        coverage run -m pytest
         coverage xml
 
     - name: Upload coverage to Codecov

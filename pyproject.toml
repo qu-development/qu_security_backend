@@ -148,3 +148,11 @@ confidence = "MEDIUM"
 
 # Severity levels: LOW, MEDIUM, HIGH
 severity = "MEDIUM"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "qu_security.settings"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-ra"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
