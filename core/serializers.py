@@ -135,10 +135,22 @@ class ClientSerializer(serializers.ModelSerializer):
     """Serializer for Client model"""
 
     user_details = UserSerializer(source="user", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
         model = Client
-        fields = ["id", "user", "user_details", "phone", "balance"]
+        fields = [
+            "id",
+            "user",
+            "user_details",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "balance",
+        ]
         read_only_fields = ["id", "balance"]
 
 
@@ -148,6 +160,9 @@ class ClientDetailSerializer(serializers.ModelSerializer):
     user_details = UserSerializer(source="user", read_only=True)
     properties_count = serializers.SerializerMethodField()
     total_expenses = serializers.SerializerMethodField()
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
         model = Client
@@ -155,6 +170,9 @@ class ClientDetailSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "user_details",
+            "first_name",
+            "last_name",
+            "email",
             "phone",
             "balance",
             "properties_count",
