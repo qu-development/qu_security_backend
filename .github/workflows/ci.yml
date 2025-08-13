@@ -138,8 +138,8 @@ jobs:
 
     - name: Run Bandit Security Scan
       run: |
-        bandit -r . -f json -o bandit-report.json || true
-        bandit -r . -f txt
+        bandit -c pyproject.toml -r . -f json -o bandit-report.json || true
+        bandit -c pyproject.toml -r . -f txt
 
     - name: Upload security scan results
       uses: actions/upload-artifact@v4
