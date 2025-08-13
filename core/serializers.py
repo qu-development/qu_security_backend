@@ -134,7 +134,6 @@ class GuardDetailSerializer(serializers.ModelSerializer):
 class ClientSerializer(serializers.ModelSerializer):
     """Serializer for Client model"""
 
-    user_details = UserSerializer(source="user", read_only=True)
     first_name = serializers.CharField(source="user.first_name", read_only=True)
     last_name = serializers.CharField(source="user.last_name", read_only=True)
     email = serializers.EmailField(source="user.email", read_only=True)
@@ -144,20 +143,21 @@ class ClientSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user",
-            "user_details",
             "first_name",
             "last_name",
             "email",
             "phone",
             "balance",
+            "created_at",
+            "updated_at",
+            "is_active",
         ]
-        read_only_fields = ["id", "balance"]
+        read_only_fields = ["id", "balance", "created_at", "updated_at", "is_active"]
 
 
 class ClientDetailSerializer(serializers.ModelSerializer):
     """Detailed serializer for Client model with user information"""
 
-    user_details = UserSerializer(source="user", read_only=True)
     properties_count = serializers.SerializerMethodField()
     total_expenses = serializers.SerializerMethodField()
     first_name = serializers.CharField(source="user.first_name", read_only=True)
@@ -169,7 +169,6 @@ class ClientDetailSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user",
-            "user_details",
             "first_name",
             "last_name",
             "email",
@@ -177,8 +176,11 @@ class ClientDetailSerializer(serializers.ModelSerializer):
             "balance",
             "properties_count",
             "total_expenses",
+            "created_at",
+            "updated_at",
+            "is_active",
         ]
-        read_only_fields = ["id", "balance"]
+        read_only_fields = ["id", "balance", "created_at", "updated_at", "is_active"]
 
     def get_properties_count(self, obj):
         return obj.properties.count()
