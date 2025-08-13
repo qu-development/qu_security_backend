@@ -195,6 +195,59 @@ class ClientDetailSerializer(serializers.ModelSerializer):
         return total
 
 
+class ClientCreateSerializer(serializers.Serializer):
+    """Serializer for creating a new Client along with its User"""
+
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField()
+    phone = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError(_("Email is already in use."))
+        return value
+
+    def _generate_unique_username(self, base: str) -> str:
+        base = base or "client"
+        base = base.strip()[:150]
+        username = base
+        idx = 1
+        while User.objects.filter(username=username).exists():
+            suffix = str(idx)
+            max_base_len = 150 - len(suffix)
+            username = f"{base[:max_base_len]}{suffix}"
+            idx += 1
+        return username
+
+    def create(self, validated_data):
+        email = validated_data.get("email")
+        first_name = validated_data.get("first_name", "")
+        last_name = validated_data.get("last_name", "")
+        phone = validated_data.get("phone", "")
+
+        local_part = email.split("@", 1)[0] if email and "@" in email else email
+        username = self._generate_unique_username(local_part)
+
+        user = User(
+            username=username,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            is_staff=False,
+            is_superuser=False,
+        )
+        user.set_unusable_password()
+        user.save()
+
+        client = Client.objects.create(user=user, phone=phone)
+        return client
+
+    def to_representation(self, instance):
+        # Reuse the standard client representation after creation
+        return ClientSerializer(instance).data
+
+
 class PropertyTypeOfServiceSerializer(serializers.ModelSerializer):
     """Serializer for PropertyTypeOfService model"""
 

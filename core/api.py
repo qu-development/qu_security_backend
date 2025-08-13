@@ -26,6 +26,7 @@ from .models import (
     Shift,
 )
 from .serializers import (
+    ClientCreateSerializer,
     ClientDetailSerializer,
     ClientSerializer,
     ExpenseSerializer,
@@ -293,7 +294,9 @@ class ClientViewSet(
 
     def get_serializer_class(self):
         """Return the appropriate serializer class based on action"""
-        if self.action == "retrieve":
+        if self.action == "create":
+            return ClientCreateSerializer
+        elif self.action == "retrieve":
             return ClientDetailSerializer
         return ClientSerializer
 
@@ -314,7 +317,7 @@ class ClientViewSet(
 
     @swagger_auto_schema(
         operation_description="Create a new client",
-        request_body=ClientSerializer,
+        request_body=ClientCreateSerializer,
         responses={201: ClientSerializer, 400: "Bad Request"},
     )
     def create(self, request, *args, **kwargs):
