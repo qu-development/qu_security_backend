@@ -6,6 +6,11 @@ from common.models import BaseModel
 
 
 class Shift(BaseModel):
+    class Status(models.TextChoices):
+        SCHEDULED = "scheduled", _("Scheduled")
+        COMPLETED = "completed", _("Completed")
+        VOIDED = "voided", _("Voided")
+
     guard = models.ForeignKey(
         "Guard",
         on_delete=models.CASCADE,
@@ -22,6 +27,12 @@ class Shift(BaseModel):
     end_time = models.DateTimeField(verbose_name=_("End Time"))
     hours_worked = models.PositiveIntegerField(
         default=0, validators=[MinValueValidator(0)], verbose_name=_("Hours Worked")
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.SCHEDULED,
+        verbose_name=_("Status"),
     )
 
     class Meta:
