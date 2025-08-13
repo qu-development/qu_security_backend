@@ -2,12 +2,16 @@
 Common mixins for views and serializers
 """
 
+import logging
+
 from django.db.models import QuerySet
 from rest_framework import status
 from rest_framework.decorators import action
 
 from .constants import API_MESSAGES
 from .utils import ModelHelper, ResponseHelper
+
+logger = logging.getLogger(__name__)
 
 
 class SoftDeleteMixin:
@@ -35,16 +39,28 @@ class SoftDeleteMixin:
 
     def get_queryset(self):
         """Override to filter only active objects by default"""
-        queryset = super().get_queryset()
-        if hasattr(queryset.model, "is_active"):
-            # Check if we want to include inactive objects
+        base_qs = super().get_queryset()
+        model = getattr(base_qs, "model", None)
+        if model and hasattr(model, "is_active"):
             include_inactive = (
                 self.request.query_params.get("include_inactive", "false").lower()
                 == "true"
             )
-            if not include_inactive:
-                queryset = queryset.filter(is_active=True)
-        return queryset
+            if include_inactive and hasattr(model, "all_objects"):
+                # Rebuild queryset using the unfiltered manager, preserve ordering
+                queryset = model.all_objects.all()
+                try:
+                    order_by = list(base_qs.query.order_by)
+                    if order_by:
+                        queryset = queryset.order_by(*order_by)
+                except Exception:
+                    logger.warning(
+                        "Failed to apply ordering to queryset: %s", base_qs.query
+                    )
+                return queryset
+            # Default manager already returns only active records
+            return base_qs
+        return base_qs
 
 
 class TimestampMixin:

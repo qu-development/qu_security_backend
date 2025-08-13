@@ -314,9 +314,6 @@ class PropertySerializer(serializers.ModelSerializer):
     types_of_service = serializers.PrimaryKeyRelatedField(
         queryset=PropertyTypeOfService.objects.all(), many=True, required=False
     )
-    types_of_service_details = PropertyTypeOfServiceSerializer(
-        source="types_of_service", many=True, read_only=True
-    )
 
     class Meta:
         model = Property
@@ -327,12 +324,19 @@ class PropertySerializer(serializers.ModelSerializer):
             "name",
             "address",
             "types_of_service",
-            "types_of_service_details",
             "monthly_rate",
             "contract_start_date",
             "total_hours",
         ]
         read_only_fields = ["id", "owner"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Represent types_of_service as detailed objects under the same key
+        data["types_of_service"] = PropertyTypeOfServiceSerializer(
+            instance.types_of_service.filter(is_active=True), many=True
+        ).data
+        return data
 
 
 class PropertyDetailSerializer(serializers.ModelSerializer):
@@ -345,9 +349,6 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     types_of_service = serializers.PrimaryKeyRelatedField(
         queryset=PropertyTypeOfService.objects.all(), many=True, required=False
     )
-    types_of_service_details = PropertyTypeOfServiceSerializer(
-        source="types_of_service", many=True, read_only=True
-    )
 
     class Meta:
         model = Property
@@ -358,7 +359,6 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
             "name",
             "address",
             "types_of_service",
-            "types_of_service_details",
             "monthly_rate",
             "contract_start_date",
             "total_hours",
@@ -367,6 +367,14 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
             "total_expenses_amount",
         ]
         read_only_fields = ["id", "owner"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Represent types_of_service as detailed objects under the same key
+        data["types_of_service"] = PropertyTypeOfServiceSerializer(
+            instance.types_of_service.filter(is_active=True), many=True
+        ).data
+        return data
 
     def get_shifts_count(self, obj):
         return obj.shifts.count()

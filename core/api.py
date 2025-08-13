@@ -544,7 +544,7 @@ class ShiftViewSet(
         return Response({"error": "property_id parameter is required"}, status=400)
 
 
-class PropertyTypeOfServiceViewSet(viewsets.ReadOnlyModelViewSet):
+class PropertyTypeOfServiceViewSet(SoftDeleteMixin, viewsets.ReadOnlyModelViewSet):
     """
     Read-only ViewSet for PropertyTypeOfService model.
 
