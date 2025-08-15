@@ -10,7 +10,6 @@ from common.mixins import BulkActionMixin, FilterMixin, SoftDeleteMixin
 from permissions.models import ResourcePermission
 from permissions.permissions import (
     CanCreateExpense,
-    CanCreateShift,
     IsAdminOrManager,
     IsClientOwner,
     IsGuardAssigned,
@@ -475,15 +474,49 @@ class PropertyViewSet(
         return qs
 
     def perform_create(self, serializer):
-        """Set the owner to the current user's client profile"""
-        try:
-            client = self.request.user.client
-            serializer.save(owner=client)
-        except Exception:
-            # If the user doesn't have a client profile, raise an error
-            from rest_framework.exceptions import ValidationError
+        """
+        Create property owned by:
+        - The authenticated user's Client profile, if it exists; otherwise
+        - The Client specified by 'owner' when the user has Django add permission.
+        """
+        from rest_framework.exceptions import ValidationError
 
-            raise ValidationError("Only clients can create properties")
+        user = self.request.user
+
+        # Case 1: authenticated user is a Client -> force owner to self
+        client = getattr(user, "client", None)
+        if client:
+            serializer.save(owner=client)
+            return
+
+        # Case 2: user has Django model add permission -> require owner in payload
+        if user.has_perm("core.add_property"):
+            owner_id = self.request.data.get("owner")
+            if not owner_id:
+                raise ValidationError({"owner": "Owner (Client id) is required."})
+            # Validate owner exists
+            target_client = Client.objects.filter(pk=owner_id).first()
+            if not target_client:
+                raise ValidationError({"owner": "Owner not found."})
+
+            # Enforce alias uniqueness per owner early to return 400 instead of DB error
+            alias = serializer.validated_data.get("alias")
+            if alias:
+                exists = Property.objects.filter(
+                    owner=target_client, alias=alias
+                ).exists()
+                if exists:
+                    raise ValidationError(
+                        {"alias": "Alias must be unique for this owner."}
+                    )
+
+            serializer.save(owner=target_client)
+            return
+
+        # Otherwise, reject
+        raise ValidationError(
+            "Only clients or users with add permission can create properties"
+        )
 
     @swagger_auto_schema(
         operation_description="Get list of all properties",
@@ -551,7 +584,7 @@ class ShiftViewSet(
     def get_permissions(self):
         """Return the appropriate permissions based on action"""
         if self.action == "create":
-            permission_classes = [permissions.IsAuthenticated, CanCreateShift]
+            permission_classes = [permissions.IsAuthenticated]
         elif self.action in ["update", "partial_update", "destroy"]:
             permission_classes = [permissions.IsAuthenticated, IsGuardAssigned]
         else:
@@ -581,6 +614,10 @@ class ShiftViewSet(
     def create(self, request, *args, **kwargs):
         """Create a new shift"""
         return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        """Temporarily allow any authenticated user to create a shift."""
+        serializer.save()
 
     @swagger_auto_schema(
         operation_description="Get shifts by guard",
@@ -656,10 +693,7 @@ class GuardPropertyTariffViewSet(
 
     def get_permissions(self):
         """Return permissions based on action"""
-        if (
-            self.action in ["update", "partial_update", "destroy"]
-            or self.action == "retrieve"
-        ):
+        if self.action in ["update", "partial_update", "destroy"]:
             permission_classes = [permissions.IsAuthenticated, IsClientOwner]
         else:
             permission_classes = [permissions.IsAuthenticated]

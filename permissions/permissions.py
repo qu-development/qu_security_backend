@@ -240,24 +240,8 @@ class CanCreateShift(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
-
-        # Superusers and managers can always create shifts
-        if (
-            request.user.is_superuser
-            or request.user.groups.filter(
-                name__in=["Administrators", "Managers"]
-            ).exists()
-        ):
-            return True
-
-        # Guards can create their own shifts
-        try:
-            UserRole.objects.get(user=request.user, role="guard", is_active=True)
-            return True
-        except UserRole.DoesNotExist:
-            pass
-
-        return False
+        # For now, allow any authenticated user to create shifts
+        return request.method == "POST"
 
 
 class CanCreateExpense(BasePermission):

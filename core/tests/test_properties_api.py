@@ -1,5 +1,5 @@
 import pytest
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Permission, User
 from django.urls import reverse
 from model_bakery import baker
 from rest_framework.test import APIClient
@@ -51,8 +51,10 @@ def test_property_create_non_client_returns_400():
 
     # Assert
     assert resp.status_code == 400
-    # Error message raised in perform_create
-    assert "Only clients can create properties" in str(resp.json())
+    # Error message raised in perform_create (updated)
+    assert "Only clients or users with add permission can create properties" in str(
+        resp.json()
+    )
 
 
 @pytest.mark.django_db
@@ -294,3 +296,62 @@ def test_soft_delete_and_restore_flow():
     # After restore, detail should be accessible again (200)
     r_after_restore = api.get(url_detail)
     assert r_after_restore.status_code == 200
+
+
+@pytest.mark.django_db
+def test_property_create_by_non_client_with_add_permission_and_owner_succeeds():
+    # Arrange: create a target client owner and a non-client acting user with add permission
+    owner_user = baker.make(User)
+    owner_client = baker.make(Client, user=owner_user)
+
+    acting_user = baker.make(User)
+    perm = Permission.objects.get(
+        codename="add_property", content_type__app_label="core"
+    )
+    acting_user.user_permissions.add(perm)
+
+    api = APIClient()
+    api.force_authenticate(user=acting_user)
+
+    payload = {
+        "owner": owner_client.id,
+        "address": "Ext Created",
+        "total_hours": 15,
+        "alias": "External",
+    }
+
+    # Act
+    url = reverse("core:property-list")
+    resp = api.post(url, payload, format="json")
+
+    # Assert
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["owner"] == owner_client.id
+    assert data["alias"] == "External"
+
+
+@pytest.mark.django_db
+def test_property_create_by_non_client_with_add_permission_missing_owner_returns_400():
+    # Arrange: acting user with permission but missing owner in payload
+    acting_user = baker.make(User)
+    perm = Permission.objects.get(
+        codename="add_property", content_type__app_label="core"
+    )
+    acting_user.user_permissions.add(perm)
+
+    api = APIClient()
+    api.force_authenticate(user=acting_user)
+
+    payload = {
+        "address": "No Owner",
+        "total_hours": 5,
+    }
+
+    # Act
+    url = reverse("core:property-list")
+    resp = api.post(url, payload, format="json")
+
+    # Assert
+    assert resp.status_code == 400
+    assert "owner" in resp.json()
