@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -527,8 +528,46 @@ class PropertyViewSet(
         return super().list(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Create a new property",
-        request_body=PropertySerializer,
+        operation_description=(
+            "Create a new property. If the authenticated user is not a Client but has "
+            "Django permission 'core.add_property', you must include 'owner' (Client id)."
+        ),
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["address", "total_hours"],
+            properties={
+                "owner": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description=(
+                        "Client id. Required for non-client users with 'core.add_property'. "
+                        "Ignored when the caller is a Client (owner is forced to self)."
+                    ),
+                ),
+                "address": openapi.Schema(type=openapi.TYPE_STRING),
+                "total_hours": openapi.Schema(
+                    type=openapi.TYPE_INTEGER, description="Total hours budgeted"
+                ),
+                "alias": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    nullable=True,
+                    description=(
+                        "Unique per owner; blank/empty values are normalized to null."
+                    ),
+                ),
+                "name": openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                "types_of_service": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Items(type=openapi.TYPE_INTEGER),
+                    description="List of PropertyTypeOfService IDs",
+                ),
+                "monthly_rate": openapi.Schema(
+                    type=openapi.TYPE_NUMBER, description="Monthly rate"
+                ),
+                "contract_start_date": openapi.Schema(
+                    type=openapi.TYPE_STRING, format="date"
+                ),
+            },
+        ),
         responses={201: PropertySerializer, 400: "Bad Request"},
     )
     def create(self, request, *args, **kwargs):
