@@ -7,12 +7,14 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from common.mixins import BulkActionMixin, FilterMixin, SoftDeleteMixin
+from permissions.models import ResourcePermission
 from permissions.permissions import (
     CanCreateExpense,
     CanCreateShift,
     IsAdminOrManager,
     IsClientOwner,
     IsGuardAssigned,
+    create_resource_permission,
 )
 from permissions.utils import PermissionManager
 
@@ -382,17 +384,29 @@ class PropertyViewSet(
     queryset = Property.objects.all().order_by("id")
 
     def get_permissions(self):
-        """Return the appropriate permissions based on action"""
+        """Return permissions based on action using resource permissions."""
+        base = [permissions.IsAuthenticated]
+
+        # Map actions to resource permission actions
         if self.action == "create":
-            permission_classes = [permissions.IsAuthenticated]
-        elif (
-            self.action in ["update", "partial_update", "destroy"]
-            or self.action == "retrieve"
-        ):
-            permission_classes = [permissions.IsAuthenticated, IsClientOwner]
+            # Creation remains allowed for authenticated users with a Client profile.
+            # Owner is set in perform_create(). No explicit resource permission required here.
+            return [p() for p in base]
+        elif self.action in ["update", "partial_update", "restore"]:
+            Perm = create_resource_permission("property", action="update")
+            base.append(Perm)
+        elif self.action in ["destroy", "soft_delete"]:
+            Perm = create_resource_permission("property", action="delete")
+            base.append(Perm)
+        elif self.action == "retrieve" or self.action == "list":
+            Perm = create_resource_permission("property", action="read")
+            base.append(Perm)
         else:
-            permission_classes = [permissions.IsAuthenticated]
-        return [permission() for permission in permission_classes]
+            # Default to read for any other actions
+            Perm = create_resource_permission("property", action="read")
+            base.append(Perm)
+
+        return [p() for p in base]
 
     def get_serializer_class(self):
         """Return the appropriate serializer class based on action"""
@@ -401,11 +415,64 @@ class PropertyViewSet(
         return PropertySerializer
 
     def get_queryset(self):
-        """Filter queryset based on user permissions"""
-        queryset = super().get_queryset()
-        return PermissionManager.filter_queryset_by_permissions(
-            self.request.user, queryset, "property"
+        """Filter queryset based on role-based permissions and explicit resource grants.
+
+        - Keeps SoftDeleteMixin behavior (include_inactive toggle).
+        - Expands access for detail actions if user has explicit ResourcePermission
+          on specific properties (read/update/delete).
+        """
+        base_qs = super().get_queryset()
+        qs = PermissionManager.filter_queryset_by_permissions(
+            self.request.user, base_qs, "property"
         )
+
+        # For detail-type actions, include objects the user has explicit resource permission for
+        action = getattr(self, "action", None)
+        if action in {
+            "retrieve",
+            "update",
+            "partial_update",
+            "destroy",
+            "soft_delete",
+            "restore",
+        }:
+            if action == "retrieve":
+                needed_actions = ["read"]
+            elif action in {"update", "partial_update", "restore"}:
+                needed_actions = ["update"]
+            else:  # destroy, soft_delete
+                needed_actions = ["delete"]
+
+            rp = ResourcePermission.objects.filter(
+                user=self.request.user,
+                is_active=True,
+                resource_type="property",
+                action__in=needed_actions,
+            )
+
+            # If user has a global permission (resource_id is null), allow all
+            if rp.filter(resource_id__isnull=True).exists():
+                qs = (qs | base_qs).distinct()
+            else:
+                ids = list(
+                    rp.filter(resource_id__isnull=False).values_list(
+                        "resource_id", flat=True
+                    )
+                )
+                if ids:
+                    include_inactive = (
+                        self.request.query_params.get(
+                            "include_inactive", "false"
+                        ).lower()
+                        == "true"
+                    )
+                    manager = (
+                        Property.all_objects if include_inactive else Property.objects
+                    )
+                    extra_qs = manager.filter(id__in=ids)
+                    qs = (qs | extra_qs).distinct()
+
+        return qs
 
     def perform_create(self, serializer):
         """Set the owner to the current user's client profile"""

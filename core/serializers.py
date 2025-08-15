@@ -322,6 +322,7 @@ class PropertySerializer(serializers.ModelSerializer):
             "owner",
             "owner_details",
             "name",
+            "alias",
             "address",
             "types_of_service",
             "monthly_rate",
@@ -329,6 +330,43 @@ class PropertySerializer(serializers.ModelSerializer):
             "total_hours",
         ]
         read_only_fields = ["id", "owner"]
+
+    def validate(self, attrs):
+        alias_value = attrs.get("alias", serializers.empty)
+        # Normalize blank alias to None so it doesn't trip unique constraint
+        if alias_value is not serializers.empty:
+            normalized = (alias_value or "").strip()
+            if not normalized:
+                attrs["alias"] = None
+            else:
+                # Determine owner: instance owner on update, request.user.client on create
+                owner = None
+                if getattr(self, "instance", None) is not None:
+                    owner = getattr(self.instance, "owner", None)
+                else:
+                    request = (
+                        self.context.get("request")
+                        if hasattr(self, "context")
+                        else None
+                    )
+                    owner = (
+                        getattr(getattr(request, "user", None), "client", None)
+                        if request
+                        else None
+                    )
+
+                if owner is not None:
+                    qs = Property.objects.filter(owner=owner, alias=normalized)
+                    if getattr(self, "instance", None) is not None:
+                        qs = qs.exclude(pk=self.instance.pk)
+                    if qs.exists():
+                        raise serializers.ValidationError(
+                            {"alias": _("Alias must be unique for this owner.")}
+                        )
+                # Keep normalized value
+                attrs["alias"] = normalized
+
+        return super().validate(attrs)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -357,6 +395,7 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
             "owner",
             "owner_details",
             "name",
+            "alias",
             "address",
             "types_of_service",
             "monthly_rate",

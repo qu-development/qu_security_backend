@@ -49,6 +49,20 @@ class HasResourcePermission(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
+        # For detail actions, rely on object-level checks to allow owner-specific access
+        detail_actions = {
+            "retrieve",
+            "update",
+            "partial_update",
+            "destroy",
+            "soft_delete",
+            "restore",
+        }
+        if getattr(view, "action", None) in detail_actions or "pk" in getattr(
+            view, "kwargs", {}
+        ):
+            return True
+
         # Determine action from HTTP method if not specified
         action = self.action
         if not action:
@@ -69,14 +83,18 @@ class HasResourcePermission(BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # Determine action from HTTP method
-        action_mapping = {
-            "GET": "read",
-            "PUT": "update",
-            "PATCH": "update",
-            "DELETE": "delete",
-        }
-        action = action_mapping.get(request.method, "read")
+        # Determine action: prefer explicit action defined for this permission (for custom actions)
+        action = self.action
+        if not action:
+            # Fallback to HTTP method mapping
+            action_mapping = {
+                "GET": "read",
+                "PUT": "update",
+                "PATCH": "update",
+                "POST": "create",
+                "DELETE": "delete",
+            }
+            action = action_mapping.get(request.method, "read")
 
         return PermissionManager.has_resource_permission(
             request.user, self.resource_type, action, obj.id

@@ -248,10 +248,32 @@ class PermissionManager:
                     resource_type, []
                 )
                 if action in allowed_actions:
-                    return True
+                    # For property detail-level actions, only managers auto-pass via role.
+                    # Clients/guards must be owners or have explicit resource permission.
+                    if resource_type == "property" and resource_id is not None:
+                        if user_role.role == "manager":
+                            return True
+                        # fall through to owner/explicit permission checks
+                    else:
+                        return True
 
         except UserRole.DoesNotExist:
             pass
+
+        # Owner fallback for property actions (allow owners to read/update/delete their properties)
+        if resource_type == "property" and resource_id:
+            # Include soft-deleted properties as well (needed for restore)
+            prop = (
+                getattr(Property, "all_objects", Property.objects)
+                .filter(id=resource_id)
+                .first()
+            )
+            if (
+                prop
+                and PermissionManager.has_property_access(user, prop, "owner")
+                and action in ["read", "update", "delete"]
+            ):
+                return True
 
         # Check specific resource permissions
         resource_perm = (

@@ -7,6 +7,7 @@ class PropertyAdmin(admin.ModelAdmin):
         "owner__user__first_name",
         "monthly_rate",
         "name",
+        "alias",
         "address",
         "get_types_of_service",
         "contract_start_date",
