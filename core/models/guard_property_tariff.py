@@ -32,8 +32,11 @@ class GuardPropertyTariff(BaseModel):
         verbose_name = _("Guard Property Tariff")
         verbose_name_plural = _("Guard Property Tariffs")
         constraints = [
+            # Allow historical tariffs; only one ACTIVE per guard+property
             models.UniqueConstraint(
-                fields=["guard", "property"], name="unique_guard_property_tariff"
+                fields=["guard", "property"],
+                condition=models.Q(is_active=True),
+                name="unique_active_guard_property_tariff",
             )
         ]
 

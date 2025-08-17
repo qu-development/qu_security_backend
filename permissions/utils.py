@@ -317,6 +317,20 @@ class PermissionManager:
                     ).values_list("property_id", flat=True)
                     return queryset.filter(id__in=property_access)
 
+            elif resource_type == "guard":
+                if user_role.role == "guard":
+                    # Guards see only their own Guard profile
+                    return queryset.filter(user=user)
+                elif user_role.role == "client":
+                    # Clients see guards associated to their properties via tariffs
+                    try:
+                        client = Client.objects.get(user=user)
+                        return queryset.filter(
+                            property_tariffs__property__owner=client
+                        ).distinct()
+                    except Client.DoesNotExist:
+                        return queryset.none()
+
             elif resource_type == "shift":
                 if user_role.role == "guard":
                     # Guards see only their shifts

@@ -3,17 +3,15 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from . import views
-from .api import (
-    ClientViewSet,
-    CustomTokenObtainPairView,
-    ExpenseViewSet,
-    GuardPropertyTariffViewSet,
-    GuardViewSet,
-    PropertyTypeOfServiceViewSet,
-    PropertyViewSet,
-    ShiftViewSet,
-    UserViewSet,
-)
+from .api.auth import CustomTokenObtainPairView
+from .api.clients import ClientViewSet
+from .api.expenses import ExpenseViewSet
+from .api.guards import GuardViewSet
+from .api.properties import PropertyViewSet
+from .api.property_types import PropertyTypeOfServiceViewSet
+from .api.shifts import ShiftViewSet
+from .api.tariffs import GuardPropertyTariffViewSet
+from .api.users import UserViewSet
 
 app_name = "core"
 
