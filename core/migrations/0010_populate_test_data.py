@@ -113,199 +113,205 @@ def create_test_data(apps, schema_editor):
     from django.db import transaction
 
     # Keep track of existing usernames and emails to avoid duplicates
-    existing_usernames = set(User.objects.values_list('username', flat=True))
-    existing_emails = set(User.objects.values_list('email', flat=True))
+    existing_usernames = set(User.objects.values_list("username", flat=True))
+    existing_emails = set(User.objects.values_list("email", flat=True))
 
     with transaction.atomic():
         print("Starting test data generation...")
 
-        # 1. Create 300 Clients
+        # 1. Create 300 Clients (users, clients, roles) using bulk_create
         print("Creating 300 clients...")
-        clients = []
+        client_usernames: list[str] = []
+        client_users: list[User] = []
+        for _ in range(300):
+            first_name, last_name = get_realistic_name()
+            username = generate_unique_username(
+                existing_usernames,
+                prefix=first_name.lower(),
+                suffix=last_name.lower(),
+            )
+            email = generate_unique_email(existing_emails, domain="businesscorp.com")
+            u = User(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+            )
+            u.set_password("testpass123")
+            client_users.append(u)
+            client_usernames.append(username)
 
-    for i in range(300):
-        first_name, last_name = get_realistic_name()
-
-        # Generate coherent business-oriented usernames and emails
-        username = generate_unique_username(existing_usernames,
-                                          prefix=first_name.lower(),
-                                          suffix=last_name.lower())
-        email = generate_unique_email(existing_emails, domain="businesscorp.com")
-
-        # Create User for Client
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            password='testpass123'
+        User.objects.bulk_create(client_users, batch_size=1000)
+        saved_client_users = list(
+            User.objects.filter(username__in=client_usernames)
         )
+        clients_map = {u.username: u for u in saved_client_users}
 
-        # Create Client with realistic financial data
-        balance = Decimal(f"{random.randint(5000, 50000)}.{random.randint(0, 99):02d}")
+        client_objs: list[Client] = []
+        client_role_objs: list[UserRole] = []
+        for username in client_usernames:
+            user = clients_map[username]
+            balance = Decimal(
+                f"{random.randint(5000, 50000)}.{random.randint(0, 99):02d}"
+            )
+            client_objs.append(
+                Client(user=user, phone=get_phone_number(), balance=balance)
+            )
+            client_role_objs.append(
+                UserRole(
+                    user=user, role="client", is_active=random.choice([True, True, True, False])
+                )
+            )
 
-        client = Client.objects.create(
-            user=user,
-            phone=get_phone_number(),
-            balance=balance
-        )
-        clients.append(client)
+        Client.objects.bulk_create(client_objs, batch_size=1000)
+        UserRole.objects.bulk_create(client_role_objs, batch_size=1000)
+        clients = list(Client.objects.filter(user__in=saved_client_users))
+        print(f"Created {len(clients)} clients")
 
-        # Create UserRole for client
-        UserRole.objects.create(
-            user=user,
-            role='client',
-            is_active=random.choice([True, True, True, False])  # 75% active
-        )
+        # 2. Create 120 Guards (users, guards, roles) using bulk_create
+        print("Creating 120 guards...")
+        guard_usernames: list[str] = []
+        guard_users: list[User] = []
+        for _ in range(120):
+            first_name, last_name = get_realistic_name()
+            username = generate_unique_username(
+                existing_usernames,
+                prefix=first_name.lower(),
+                suffix=f"{last_name.lower()}.guard",
+            )
+            email = generate_unique_email(
+                existing_emails, domain="securityguards.com"
+            )
+            u = User(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+            )
+            u.set_password("guardpass123")
+            guard_users.append(u)
+            guard_usernames.append(username)
 
-    print(f"Created {len(clients)} clients")
+        User.objects.bulk_create(guard_users, batch_size=1000)
+        saved_guard_users = list(User.objects.filter(username__in=guard_usernames))
+        guards_map = {u.username: u for u in saved_guard_users}
 
-    # 2. Create 120 Guards
-    print("Creating 120 guards...")
-    guards = []
-
-    for i in range(120):
-        first_name, last_name = get_realistic_name()
-
-        # Generate guard-specific usernames and emails
-        username = generate_unique_username(existing_usernames,
-                                          prefix=first_name.lower(),
-                                          suffix=f"{last_name.lower()}.guard")
-        email = generate_unique_email(existing_emails, domain="securityguards.com")
-
-        # Create User for Guard
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            password='guardpass123'
-        )
-
-        # Generate realistic guard data
-        street, city, state, zipcode = get_realistic_address()
-        full_address = f"{street}, {city}, {state} {zipcode}"
-
-        # Generate realistic birth date (guards should be 21-65 years old)
-        current_year = timezone.now().year
-        birth_year = random.randint(current_year - 65, current_year - 21)
-        birth_date = timezone.now().date().replace(
-            year=birth_year,
-            month=random.randint(1, 12),
-            day=random.randint(1, 28)
-        )
-
-        # Generate realistic SSN format
-        ssn = f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
-
-        guard = Guard.objects.create(
-            user=user,
-            phone=get_phone_number(),
-            ssn=ssn,
-            address=full_address[:200],  # Ensure it fits in field limit
-            birth_date=birth_date
-        )
-        guards.append(guard)
-
-        # Create UserRole for guard
-        UserRole.objects.create(
-            user=user,
-            role='guard',
-            is_active=random.choice([True, True, True, False])  # 75% active
-        )
-
-    print(f"Created {len(guards)} guards")
-
-    # 3. Create 2000 Properties
-    print("Creating 2000 properties...")
-
-    # Property types with realistic distributions
-    property_types = [
-        ('office', 0.4),      # 40% office buildings
-        ('retail', 0.3),      # 30% retail stores
-        ('warehouse', 0.15),  # 15% warehouses
-        ('residential', 0.1), # 10% residential complexes
-        ('industrial', 0.05)  # 5% industrial facilities
-    ]
-
-    properties = []
-    for i in range(2000):
-        # Assign property to a random client
-        owner = random.choice(clients)
-
-        # Choose property type based on realistic distribution
-        rand = random.random()
-        cumulative = 0
-        property_type = 'office'  # default
-        for ptype, prob in property_types:
-            cumulative += prob
-            if rand <= cumulative:
-                property_type = ptype
-                break
-
-        # Generate realistic property details
-        if HAS_FAKER:
+        guard_objs: list[Guard] = []
+        guard_role_objs: list[UserRole] = []
+        for username in guard_usernames:
+            user = guards_map[username]
             street, city, state, zipcode = get_realistic_address()
+            full_address = f"{street}, {city}, {state} {zipcode}"
+            current_year = timezone.now().year
+            birth_year = random.randint(current_year - 65, current_year - 21)
+            birth_date = timezone.now().date().replace(
+                year=birth_year, month=random.randint(1, 12), day=random.randint(1, 28)
+            )
+            ssn = f"{random.randint(100, 999)}-{random.randint(10, 99)}-{random.randint(1000, 9999)}"
+            guard_objs.append(
+                Guard(
+                    user=user,
+                    phone=get_phone_number(),
+                    ssn=ssn,
+                    address=full_address[:200],
+                    birth_date=birth_date,
+                )
+            )
+            guard_role_objs.append(
+                UserRole(
+                    user=user, role="guard", is_active=random.choice([True, True, True, False])
+                )
+            )
 
-            # Generate property names based on type
-            if property_type == 'office':
-                name = f"{fake.company()} Office Building"
-            elif property_type == 'retail':
-                name = f"{city} Shopping Center"
-            elif property_type == 'warehouse':
-                name = f"{city} Distribution Center"
-            elif property_type == 'residential':
-                name = f"{fake.street_name()} Apartments"
-            else:  # industrial
-                name = f"{city} Industrial Complex"
-        else:
-            # Fallback for when Faker is not available
-            cities = ["Springfield", "Franklin", "Greenville", "Bristol", "Clinton"]
-            city = random.choice(cities)
-            street = f"{random.randint(100, 9999)} {random.choice(['Main St', 'Oak Ave', 'Pine St'])}"
-            state = random.choice(["CA", "TX", "FL", "NY", "IL"])
-            zipcode = f"{random.randint(10000, 99999)}"
-            name = f"{city} Business Center #{i+1}"
+        Guard.objects.bulk_create(guard_objs, batch_size=1000)
+        UserRole.objects.bulk_create(guard_role_objs, batch_size=1000)
+        guards = list(Guard.objects.filter(user__in=saved_guard_users))
+        print(f"Created {len(guards)} guards")
 
-        full_address = f"{street}, {city}, {state} {zipcode}"
+        # 3. Create 2000 Properties using bulk_create
+        print("Creating 2000 properties...")
+        property_types = [
+            ("office", 0.4),
+            ("retail", 0.3),
+            ("warehouse", 0.15),
+            ("residential", 0.1),
+            ("industrial", 0.05),
+        ]
 
-        # Generate realistic pricing based on property type
-        if property_type == 'office':
-            base_rate = random.randint(2000, 8000)
-        elif property_type == 'retail':
-            base_rate = random.randint(3000, 12000)
-        elif property_type == 'warehouse':
-            base_rate = random.randint(1500, 5000)
-        elif property_type == 'residential':
-            base_rate = random.randint(1000, 4000)
-        else:  # industrial
-            base_rate = random.randint(2500, 10000)
+        properties_to_create: list[Property] = []
+        for i in range(2000):
+            owner = random.choice(clients)
 
-        monthly_rate = Decimal(f"{base_rate}.{random.randint(0, 99):02d}")
+            rand = random.random()
+            cumulative = 0
+            property_type = "office"
+            for ptype, prob in property_types:
+                cumulative += prob
+                if rand <= cumulative:
+                    property_type = ptype
+                    break
 
-        # Generate realistic contract dates (within last 2 years)
-        start_date = fake.date_between(start_date='-2y', end_date='today') if HAS_FAKER else timezone.now().date()
+            if HAS_FAKER:
+                street, city, state, zipcode = get_realistic_address()
+                if property_type == "office":
+                    name = f"{fake.company()} Office Building"
+                elif property_type == "retail":
+                    name = f"{city} Shopping Center"
+                elif property_type == "warehouse":
+                    name = f"{city} Distribution Center"
+                elif property_type == "residential":
+                    name = f"{fake.street_name()} Apartments"
+                else:
+                    name = f"{city} Industrial Complex"
+            else:
+                cities = ["Springfield", "Franklin", "Greenville", "Bristol", "Clinton"]
+                city = random.choice(cities)
+                street = f"{random.randint(100, 9999)} {random.choice(['Main St', 'Oak Ave', 'Pine St'])}"
+                state = random.choice(["CA", "TX", "FL", "NY", "IL"])
+                zipcode = f"{random.randint(10000, 99999)}"
+                name = f"{city} Business Center #{i+1}"
 
-        # Generate realistic hours based on property type
-        if property_type in ['office', 'retail']:
-            total_hours = random.choice([8, 12])  # Business hours
-        elif property_type == 'residential':
-            total_hours = 24  # 24/7 security
-        else:  # warehouse, industrial
-            total_hours = random.choice([12, 16, 24])  # Extended or 24/7
+            full_address = f"{street}, {city}, {state} {zipcode}"
 
-        property_obj = Property.objects.create(
-            owner=owner,
-            name=name[:100],  # Ensure it fits in field limit
-            alias=f"PROP{i+1:04d}" if random.choice([True, False]) else None,
-            address=full_address[:200],  # Ensure it fits in field limit
-            monthly_rate=monthly_rate,
-            contract_start_date=start_date,
-            total_hours=total_hours
-        )
-        properties.append(property_obj)
+            if property_type == "office":
+                base_rate = random.randint(2000, 8000)
+            elif property_type == "retail":
+                base_rate = random.randint(3000, 12000)
+            elif property_type == "warehouse":
+                base_rate = random.randint(1500, 5000)
+            elif property_type == "residential":
+                base_rate = random.randint(1000, 4000)
+            else:
+                base_rate = random.randint(2500, 10000)
 
-        print(f"Created {len(properties)} properties")
+            monthly_rate = Decimal(f"{base_rate}.{random.randint(0, 99):02d}")
+            start_date = (
+                fake.date_between(start_date="-2y", end_date="today")
+                if HAS_FAKER
+                else timezone.now().date()
+            )
+
+            if property_type in ["office", "retail"]:
+                total_hours = random.choice([8, 12])
+            elif property_type == "residential":
+                total_hours = 24
+            else:
+                total_hours = random.choice([12, 16, 24])
+
+            properties_to_create.append(
+                Property(
+                    owner=owner,
+                    name=name[:100],
+                    alias=f"PROP{i+1:04d}" if random.choice([True, False]) else None,
+                    address=full_address[:200],
+                    monthly_rate=monthly_rate,
+                    contract_start_date=start_date,
+                    total_hours=total_hours,
+                )
+            )
+
+        Property.objects.bulk_create(properties_to_create, batch_size=1000)
+        print(f"Created {len(properties_to_create)} properties")
         print("Test data generation completed successfully!")
 
 
@@ -320,39 +326,41 @@ def reverse_test_data(apps, schema_editor):
 
     with transaction.atomic():
         # Delete test data based on email domains used
-        test_domains = ['businesscorp.com', 'securityguards.com', 'securitycorp.com']
+        test_domains = ["businesscorp.com", "securityguards.com", "securitycorp.com"]
 
-    # Find test users by email domains
-    test_users = User.objects.filter(
-        email__iregex=r'.*@(' + '|'.join(test_domains) + ')$'
-    )
+        # Find test users by email domains
+        test_users = User.objects.filter(
+            email__iregex=r".*@(" + "|".join(test_domains) + ")$"
+        )
 
-    if test_users.exists():
-        print(f"Found {test_users.count()} test users to remove")
+        if test_users.exists():
+            print(f"Found {test_users.count()} test users to remove")
 
-        # Delete UserRoles first (to avoid foreign key constraints)
-        UserRole.objects.filter(user__in=test_users).delete()
+            # Delete UserRoles first (to avoid foreign key constraints)
+            UserRole.objects.filter(user__in=test_users).delete()
 
-        # Delete Properties owned by test clients
-        test_clients = Client.objects.filter(user__in=test_users)
-        properties_deleted = Property.objects.filter(owner__in=test_clients).delete()[0]
-        print(f"Deleted {properties_deleted} test properties")
+            # Delete Properties owned by test clients
+            test_clients = Client.objects.filter(user__in=test_users)
+            properties_deleted = (
+                Property.objects.filter(owner__in=test_clients).delete()[0]
+            )
+            print(f"Deleted {properties_deleted} test properties")
 
-        # Delete Guards
-        guards_deleted = Guard.objects.filter(user__in=test_users).delete()[0]
-        print(f"Deleted {guards_deleted} test guards")
+            # Delete Guards
+            guards_deleted = Guard.objects.filter(user__in=test_users).delete()[0]
+            print(f"Deleted {guards_deleted} test guards")
 
-        # Delete Clients
-        clients_deleted = test_clients.delete()[0]
-        print(f"Deleted {clients_deleted} test clients")
+            # Delete Clients
+            clients_deleted = test_clients.delete()[0]
+            print(f"Deleted {clients_deleted} test clients")
 
-        # Delete Users
-        users_deleted = test_users.delete()[0]
-        print(f"Deleted {users_deleted} test users")
+            # Delete Users
+            users_deleted = test_users.delete()[0]
+            print(f"Deleted {users_deleted} test users")
 
-        print("Test data removed successfully!")
-    else:
-        print("No test data found to remove.")
+            print("Test data removed successfully!")
+        else:
+            print("No test data found to remove.")
 
 
 class Migration(migrations.Migration):
