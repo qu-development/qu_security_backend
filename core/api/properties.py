@@ -29,6 +29,24 @@ class PropertyViewSet(
     """
 
     queryset = Property.objects.all().order_by("id")
+    # Enable global search and ordering
+    search_fields = [
+        "name",
+        "alias",
+        "address",
+        "owner__user__username",
+        "owner__user__first_name",
+        "owner__user__last_name",
+        "owner__user__email",
+    ]
+    ordering_fields = [
+        "id",
+        "name",
+        "alias",
+        "monthly_rate",
+        "total_hours",
+        "contract_start_date",
+    ]
 
     def get_permissions(self):
         """Return permissions based on action using resource permissions."""

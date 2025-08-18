@@ -31,6 +31,23 @@ class ClientViewSet(
     """
 
     queryset = Client.objects.all().order_by("id")
+    # Enable global search and ordering
+    search_fields = [
+        "user__username",
+        "user__first_name",
+        "user__last_name",
+        "user__email",
+        "phone",
+    ]
+    ordering_fields = [
+        "id",
+        "user__first_name",
+        "user__last_name",
+        "user__username",
+        "user__email",
+        "phone",
+        "balance",
+    ]
 
     def get_permissions(self):
         """Return the appropriate permissions based on action"""

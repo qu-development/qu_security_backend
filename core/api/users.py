@@ -25,6 +25,21 @@ class UserViewSet(viewsets.ModelViewSet):
     """
 
     queryset = User.objects.all().order_by("-date_joined")
+    # Enable global search and ordering
+    search_fields = [
+        "username",
+        "first_name",
+        "last_name",
+        "email",
+    ]
+    ordering_fields = [
+        "id",
+        "username",
+        "first_name",
+        "last_name",
+        "email",
+        "date_joined",
+    ]
 
     def get_queryset(self):
         qs = super().get_queryset()
