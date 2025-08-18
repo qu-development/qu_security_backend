@@ -6,7 +6,12 @@ from permissions.permissions import IsAdminOrManager
 from permissions.utils import PermissionManager
 
 from ..models import Guard
-from ..serializers import GuardCreateSerializer, GuardDetailSerializer, GuardSerializer
+from ..serializers import (
+    GuardCreateSerializer,
+    GuardDetailSerializer,
+    GuardSerializer,
+    GuardUpdateSerializer,
+)
 
 
 class GuardViewSet(
@@ -39,6 +44,8 @@ class GuardViewSet(
             return GuardCreateSerializer
         if self.action == "retrieve":
             return GuardDetailSerializer
+        if self.action in ["update", "partial_update"]:
+            return GuardUpdateSerializer
         return GuardSerializer
 
     def get_queryset(self):
@@ -64,3 +71,21 @@ class GuardViewSet(
     def create(self, request, *args, **kwargs):
         """Create a new guard"""
         return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Update guard information (full update)",
+        request_body=GuardUpdateSerializer,
+        responses={200: GuardUpdateSerializer, 400: "Bad Request", 404: "Not Found"},
+    )
+    def update(self, request, *args, **kwargs):
+        """Update guard information (full update)"""
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Partially update guard information",
+        request_body=GuardUpdateSerializer,
+        responses={200: GuardUpdateSerializer, 400: "Bad Request", 404: "Not Found"},
+    )
+    def partial_update(self, request, *args, **kwargs):
+        """Partially update guard information"""
+        return super().partial_update(request, *args, **kwargs)

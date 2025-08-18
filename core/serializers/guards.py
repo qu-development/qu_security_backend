@@ -46,6 +46,79 @@ class GuardSerializer(serializers.ModelSerializer):
         return full or obj.user.username
 
 
+class GuardUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating Guard model including user fields"""
+
+    # Allow updating user fields
+    first_name = serializers.CharField(
+        source="user.first_name", required=False, allow_blank=True
+    )
+    last_name = serializers.CharField(
+        source="user.last_name", required=False, allow_blank=True
+    )
+    email = serializers.EmailField(source="user.email", required=False)
+
+    # Read-only fields for response
+    user_details = UserSerializer(source="user", read_only=True)
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Guard
+        fields = [
+            "id",
+            "user",
+            "user_details",
+            "first_name",
+            "last_name",
+            "name",
+            "email",
+            "birth_date",
+            "phone",
+            "ssn",
+            "address",
+        ]
+        read_only_fields = ["id", "user"]
+
+    def get_name(self, obj):
+        fn = (obj.user.first_name or "").strip()
+        ln = (obj.user.last_name or "").strip()
+        full = f"{fn} {ln}".strip()
+        return full or obj.user.username
+
+    def validate_email(self, value):
+        """Validate email uniqueness excluding current user"""
+        if value:
+            user = self.instance.user if self.instance else None
+            if (
+                User.objects.filter(email__iexact=value)
+                .exclude(id=user.id if user else None)
+                .exists()
+            ):
+                raise serializers.ValidationError(_("Email is already in use."))
+        return value
+
+    def update(self, instance, validated_data):
+        """Update both Guard and User fields"""
+        # Extract user fields
+        user_data = {}
+        if "user" in validated_data:
+            user_data = validated_data.pop("user")
+
+        # Update user fields if provided
+        if user_data:
+            user = instance.user
+            for attr, value in user_data.items():
+                setattr(user, attr, value)
+            user.save()
+
+        # Update guard fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
+
+
 class GuardCreateSerializer(serializers.Serializer):
     """Serializer to create a Guard together with its User when needed.
 
