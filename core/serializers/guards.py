@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -6,6 +8,8 @@ from permissions.utils import PermissionManager
 
 from ..models import Guard
 from .users import UserSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class GuardSerializer(serializers.ModelSerializer):
@@ -76,9 +80,16 @@ class GuardCreateSerializer(serializers.Serializer):
                 {"email": _("Email is required when no user is provided.")}
             )
 
+        # If user is provided, check if they already have a Guard profile
+        if user and hasattr(user, "guard"):
+            raise serializers.ValidationError(
+                {"user": _("This user already has a Guard profile.")}
+            )
+
         # If creating a new user, validate email uniqueness
         if not user and email and User.objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError({"email": _("Email is already in use.")})
+
         return attrs
 
     def _generate_unique_username(self, base: str) -> str:
@@ -93,58 +104,106 @@ class GuardCreateSerializer(serializers.Serializer):
         return username
 
     def create(self, validated_data):
+        from django.db import IntegrityError, transaction
+
         request = self.context.get("request")
-        acting_user = getattr(request, "user", None)
+        acting_user = getattr(request, "user", None) if request else None
 
         user = validated_data.get("user")
-        if not user:
-            # Create the user first
-            email = validated_data.get("email")
-            first_name = validated_data.get("first_name", "")
-            last_name = validated_data.get("last_name", "")
 
-            local_part = email.split("@", 1)[0] if email and "@" in email else email
-            username = self._generate_unique_username(local_part)
+        try:
+            with transaction.atomic():
+                if not user:
+                    # Create the user first
+                    email = validated_data.get("email")
+                    first_name = validated_data.get("first_name", "")
+                    last_name = validated_data.get("last_name", "")
 
-            user = User(
-                username=username,
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                is_staff=False,
-                is_superuser=False,
+                    local_part = (
+                        email.split("@", 1)[0] if email and "@" in email else email
+                    )
+                    username = self._generate_unique_username(local_part)
+
+                    # Double-check email uniqueness inside transaction
+                    if User.objects.filter(email__iexact=email).exists():
+                        raise serializers.ValidationError(
+                            {"email": _("Email is already in use.")}
+                        )
+
+                    user = User(
+                        username=username,
+                        email=email,
+                        first_name=first_name,
+                        last_name=last_name,
+                        is_staff=False,
+                        is_superuser=False,
+                    )
+                    user.set_unusable_password()
+                    user.save()
+
+                # Double-check that user doesn't already have a Guard profile
+                if hasattr(user, "guard"):
+                    raise serializers.ValidationError(
+                        {"user": _("This user already has a Guard profile.")}
+                    )
+
+                # Ensure groups exist and assign role/group 'guard' to the target user
+                PermissionManager.setup_default_groups()
+                if acting_user and getattr(acting_user, "is_authenticated", False):
+                    PermissionManager.assign_user_role(
+                        user, "guard", assigned_by=acting_user
+                    )
+                else:
+                    # Fallback to self-assignment if no acting user
+                    PermissionManager.assign_user_role(user, "guard", assigned_by=user)
+
+                # Create Guard
+                guard = Guard.objects.create(
+                    user=user,
+                    phone=validated_data.get("phone", ""),
+                    ssn=validated_data.get("ssn", ""),
+                    address=validated_data.get("address", ""),
+                    birth_date=validated_data.get("birth_date"),
+                )
+                return guard
+
+        except IntegrityError as e:
+            logger.error(f"IntegrityError creating Guard: {str(e)}")
+            if "core_guard_user_id_key" in str(e):
+                raise serializers.ValidationError(
+                    {"user": _("This user already has a Guard profile.")}
+                )
+            elif "auth_user_email" in str(e) or "email" in str(e).lower():
+                raise serializers.ValidationError(
+                    {"email": _("Email is already in use.")}
+                )
+            elif "auth_user_username" in str(e) or "username" in str(e).lower():
+                raise serializers.ValidationError(
+                    {
+                        "email": _(
+                            "Unable to generate unique username. Please try a different email."
+                        )
+                    }
+                )
+            else:
+                raise serializers.ValidationError(
+                    {
+                        "non_field_errors": [
+                            _(
+                                "Database integrity error occurred. Please check your data."
+                            )
+                        ]
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Unexpected error creating Guard: {str(e)}", exc_info=True)
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        _("An unexpected error occurred: {}").format(str(e))
+                    ]
+                }
             )
-            user.set_unusable_password()
-            user.save()
-
-            # Ensure groups exist and assign role/group 'guard'
-            PermissionManager.setup_default_groups()
-            if acting_user and getattr(acting_user, "is_authenticated", False):
-                PermissionManager.assign_user_role(
-                    user, "guard", assigned_by=acting_user
-                )
-            else:
-                # Fallback to self-assignment if no acting user
-                PermissionManager.assign_user_role(user, "guard", assigned_by=user)
-        else:
-            # Existing user provided: ensure they have 'guard' role/group
-            PermissionManager.setup_default_groups()
-            if acting_user and getattr(acting_user, "is_authenticated", False):
-                PermissionManager.assign_user_role(
-                    user, "guard", assigned_by=acting_user
-                )
-            else:
-                PermissionManager.assign_user_role(user, "guard", assigned_by=user)
-
-        # Create Guard
-        guard = Guard.objects.create(
-            user=user,
-            phone=validated_data.get("phone", ""),
-            ssn=validated_data.get("ssn", ""),
-            address=validated_data.get("address", ""),
-            birth_date=validated_data.get("birth_date"),
-        )
-        return guard
 
     def to_representation(self, instance):
         return GuardSerializer(instance).data
