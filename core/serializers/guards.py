@@ -36,7 +36,8 @@ class GuardSerializer(serializers.ModelSerializer):
             "ssn",
             "address",
         ]
-        read_only_fields = ["id"]
+        # user is read-only to avoid requiring it on update and to ignore any provided value
+        read_only_fields = ["id", "user"]
 
     def get_name(self, obj):
         fn = (obj.user.first_name or "").strip()
