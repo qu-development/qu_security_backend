@@ -6,7 +6,12 @@ from .clients import (
     ClientUpdateSerializer,
 )
 from .expenses import ExpenseSerializer
-from .guards import GuardCreateSerializer, GuardDetailSerializer, GuardSerializer
+from .guards import (
+    GuardCreateSerializer,
+    GuardDetailSerializer,
+    GuardSerializer,
+    GuardUpdateSerializer,
+)
 from .properties import PropertyDetailSerializer, PropertySerializer
 from .property_types import PropertyTypeOfServiceSerializer
 from .shifts import ShiftSerializer
@@ -28,6 +33,7 @@ __all__ = [
     "GuardCreateSerializer",
     "GuardSerializer",
     "GuardDetailSerializer",
+    "GuardUpdateSerializer",
     # clients
     "ClientSerializer",
     "ClientDetailSerializer",
