@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -25,6 +26,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all().order_by("-date_joined")
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        # Restrict the list endpoint to only staff or superusers
+        if getattr(self, "action", None) == "list":
+            return qs.filter(Q(is_superuser=True) | Q(is_staff=True))
+        return qs
+
     def get_serializer_class(self):
         """Return the appropriate serializer class based on action"""
         if self.action == "create":
@@ -44,7 +52,10 @@ class UserViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     @swagger_auto_schema(
-        operation_description="Get list of all users",
+        operation_description=(
+            "Get list of users. Note: only users with is_staff=True or "
+            "is_superuser=True are returned."
+        ),
         responses={200: UserSerializer(many=True)},
     )
     def list(self, request, *args, **kwargs):
