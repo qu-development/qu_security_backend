@@ -31,7 +31,6 @@ def test_tariff_create_forbidden_for_non_owner_client():
         "guard": guard.id,
         "property": prop.id,
         "rate": "15.50",
-        "is_active": True,
     }
 
     # Act
@@ -65,7 +64,6 @@ def test_tariff_create_by_owner_succeeds_and_deactivates_previous_active():
         "guard": guard.id,
         "property": prop.id,
         "rate": "12.00",
-        "is_active": True,
     }
 
     url = reverse("core:guard-property-tariff-list")

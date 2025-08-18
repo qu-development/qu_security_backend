@@ -10,7 +10,7 @@ from .guards import GuardCreateSerializer, GuardDetailSerializer, GuardSerialize
 from .properties import PropertyDetailSerializer, PropertySerializer
 from .property_types import PropertyTypeOfServiceSerializer
 from .shifts import ShiftSerializer
-from .tariffs import GuardPropertyTariffSerializer
+from .tariffs import GuardPropertyTariffCreateSerializer, GuardPropertyTariffSerializer
 from .users import (
     LoginSerializer,
     UserCreateSerializer,
@@ -44,4 +44,5 @@ __all__ = [
     "ExpenseSerializer",
     # tariffs
     "GuardPropertyTariffSerializer",
+    "GuardPropertyTariffCreateSerializer",
 ]

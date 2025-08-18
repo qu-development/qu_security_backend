@@ -7,7 +7,10 @@ from common.mixins import BulkActionMixin, FilterMixin, SoftDeleteMixin
 from permissions.permissions import IsClientOwner
 
 from ..models import GuardPropertyTariff
-from ..serializers import GuardPropertyTariffSerializer
+from ..serializers import (
+    GuardPropertyTariffCreateSerializer,
+    GuardPropertyTariffSerializer,
+)
 
 
 class GuardPropertyTariffViewSet(
@@ -28,6 +31,12 @@ class GuardPropertyTariffViewSet(
 
     queryset = GuardPropertyTariff.objects.all().order_by("-id")
     serializer_class = GuardPropertyTariffSerializer
+
+    def get_serializer_class(self):
+        # Use a minimal serializer on create to only accept guard, property, and rate
+        if self.action == "create":
+            return GuardPropertyTariffCreateSerializer
+        return super().get_serializer_class()
 
     def get_permissions(self):
         """Return permissions based on action"""
@@ -137,11 +146,23 @@ class GuardPropertyTariffViewSet(
 
     @swagger_auto_schema(
         operation_description="Create a new guard-property tariff",
-        request_body=GuardPropertyTariffSerializer,
+        request_body=GuardPropertyTariffCreateSerializer,
         responses={201: GuardPropertyTariffSerializer, 400: "Bad Request"},
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        # Validate and create with the minimal create serializer
+        create_serializer = self.get_serializer(data=request.data)
+        create_serializer.is_valid(raise_exception=True)
+        # Use perform_create to preserve business rules
+        self.perform_create(create_serializer)
+        instance = create_serializer.instance
+
+        # Respond with the full read serializer
+        read_serializer = GuardPropertyTariffSerializer(
+            instance, context=self.get_serializer_context()
+        )
+        headers = self.get_success_headers(read_serializer.data)
+        return Response(read_serializer.data, status=201, headers=headers)
 
     @swagger_auto_schema(
         operation_description="Get tariffs by guard",

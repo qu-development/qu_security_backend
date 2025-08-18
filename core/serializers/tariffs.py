@@ -28,3 +28,13 @@ class GuardPropertyTariffSerializer(serializers.ModelSerializer):
         # Disable automatic unique validators so we can handle conditional
         # uniqueness (only one active per pair) in the view logic and DB.
         validators = []
+
+
+class GuardPropertyTariffCreateSerializer(serializers.ModelSerializer):
+    """Create-only serializer: restricts writable fields to guard, property, rate."""
+
+    class Meta:
+        model = GuardPropertyTariff
+        fields = ["guard", "property", "rate"]
+        # Require rate explicitly for clarity, even though model has a default.
+        extra_kwargs = {"rate": {"required": True}}
