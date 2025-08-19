@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:  # pragma: no cover - for type checkers only
     from collections.abc import Callable
 
-from django.db.models import QuerySet  # noqa: TC002
+    from django.db.models import QuerySet
+
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import status
