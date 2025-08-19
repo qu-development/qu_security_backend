@@ -9,5 +9,6 @@ class GeneralSettingsSerializer(serializers.ModelSerializer):
         fields = [
             "app_name",
             "app_description",
+            "api_page_size",
         ]
         read_only_fields = fields

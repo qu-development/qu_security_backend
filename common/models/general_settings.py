@@ -25,6 +25,12 @@ class GeneralSettings(SingletonModel, BaseModel):
         default="QU Security",
     )
 
+    api_page_size = models.PositiveIntegerField(
+        _("API Page Size"),
+        default=20,
+        help_text=_("Number of items per page across the API"),
+    )
+
     class Meta:
         verbose_name = _("General Settings")
         verbose_name_plural = _("General Settings")
