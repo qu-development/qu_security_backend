@@ -2,9 +2,18 @@
 Common mixins for views and serializers
 """
 
-import logging
+from __future__ import annotations
 
-from django.db.models import QuerySet
+import logging
+from datetime import datetime, time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover - for type checkers only
+    from collections.abc import Callable
+
+from django.db.models import QuerySet  # noqa: TC002
+from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import status
 from rest_framework.decorators import action
 
@@ -96,7 +105,10 @@ class FilterMixin:
         queryset = self.get_queryset()
 
         # Apply search filter if provided
-        search = self.request.query_params.get("search")
+        request = getattr(self, "request", None)
+        if request is None:
+            return queryset
+        search = request.query_params.get("search")
         if search and hasattr(self, "search_fields"):
             # Simple search implementation
             from django.db.models import Q
@@ -107,21 +119,104 @@ class FilterMixin:
             queryset = queryset.filter(search_filter)
 
         # Apply date range filter
-        date_from = self.request.query_params.get("date_from")
-        date_to = self.request.query_params.get("date_to")
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
         date_field = getattr(self, "date_filter_field", "created_at")
 
+        def _parse_query_dt(val: str, end: bool):
+            """Parse query param into aware datetime. Supports ISO datetime or YYYY-MM-DD.
+
+            If only a date is provided (no time component), use start-of-day for date_from
+            and end-of-day for date_to.
+            """
+            if not val:
+                return None
+            dt = parse_datetime(val)
+            if dt is not None:
+                # Detect if the input lacked a time component (common when val is YYYY-MM-DD)
+                has_time = ("T" in val) or (" " in val) or (":" in val)
+                if not has_time:
+                    # Adjust to start/end of day accordingly
+                    if end:
+                        dt = dt.replace(
+                            hour=23, minute=59, second=59, microsecond=999999
+                        )
+                    else:
+                        dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+                return timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+            d = parse_date(val)
+            if d is not None:
+                base = time.max if end else time.min
+                dt = datetime.combine(d, base)
+                return timezone.make_aware(dt)
+            return None
+
         if date_from:
-            queryset = queryset.filter(**{f"{date_field}__gte": date_from})
+            df = _parse_query_dt(date_from, end=False) or date_from
+            queryset = queryset.filter(**{f"{date_field}__gte": df})
         if date_to:
-            queryset = queryset.filter(**{f"{date_field}__lte": date_to})
+            dt = _parse_query_dt(date_to, end=True) or date_to
+            queryset = queryset.filter(**{f"{date_field}__lte": dt})
 
         # Apply ordering
-        ordering = self.request.query_params.get("ordering")
+        ordering = request.query_params.get("ordering")
         if ordering:
             valid_orderings = getattr(self, "valid_orderings", [])
             if not valid_orderings or ordering.lstrip("-") in valid_orderings:
                 queryset = queryset.order_by(ordering)
+
+        return queryset
+
+    def filter_queryset(self, queryset: QuerySet) -> QuerySet:
+        """Apply DRF filter backends first, then apply date range filters.
+
+        This ensures compatibility with include_inactive (SoftDeleteMixin),
+        because DRF calls filter_queryset() after get_queryset().
+        """
+        # Apply DRF's configured filter backends (Search, Ordering, etc.)
+        base_filter: Callable[[QuerySet], QuerySet] | None = getattr(
+            super(), "filter_queryset", None
+        )
+        if callable(base_filter):
+            queryset = base_filter(queryset)
+
+        # Apply optional date range filtering
+        request = getattr(self, "request", None)
+        if request is None:
+            return queryset
+        date_from = request.query_params.get("date_from")
+        date_to = request.query_params.get("date_to")
+        date_field = getattr(self, "date_filter_field", "created_at")
+
+        def _parse_query_dt(val: str, end: bool):
+            if not val:
+                return None
+            dt = parse_datetime(val)
+            if dt is not None:
+                has_time = ("T" in val) or (" " in val) or (":" in val)
+                if not has_time:
+                    if end:
+                        dt = dt.replace(
+                            hour=23, minute=59, second=59, microsecond=999999
+                        )
+                    else:
+                        dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+                return timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+            d = parse_date(val)
+            if d is not None:
+                base = time.max if end else time.min
+                dt = datetime.combine(d, base)
+                return timezone.make_aware(dt)
+            return None
+
+        df_parsed = _parse_query_dt(date_from, end=False) if date_from else None
+        dt_parsed = _parse_query_dt(date_to, end=True) if date_to else None
+        if date_from:
+            queryset = queryset.filter(
+                **{f"{date_field}__gte": (df_parsed or date_from)}
+            )
+        if date_to:
+            queryset = queryset.filter(**{f"{date_field}__lte": (dt_parsed or date_to)})
 
         return queryset
 

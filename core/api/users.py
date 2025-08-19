@@ -5,6 +5,8 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from common.mixins import FilterMixin
+
 from ..serializers import (
     UserCreateSerializer,
     UserSerializer,
@@ -12,7 +14,7 @@ from ..serializers import (
 )
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(FilterMixin, viewsets.ModelViewSet):
     """
     ViewSet for managing User model with full CRUD operations.
 
@@ -25,6 +27,8 @@ class UserViewSet(viewsets.ModelViewSet):
     """
 
     queryset = User.objects.all().order_by("-date_joined")
+    # Apply date range filtering on the 'date_joined' field
+    date_filter_field = "date_joined"
     # Enable global search and ordering
     search_fields = [
         "username",
