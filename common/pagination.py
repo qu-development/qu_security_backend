@@ -10,11 +10,21 @@ class SettingsPageNumberPagination(PageNumberPagination):
     singleton (api_page_size). Falls back to REST_FRAMEWORK["PAGE_SIZE"] or 20.
     """
 
-    # Keep client from overriding page size via query param; enforce global value
-    page_size_query_param = None
+    # Allow clients to override with ?page_size=...; otherwise use global setting
+    page_size_query_param = "page_size"
 
     def get_page_size(self, request):  # type: ignore[override]
-        # Fallback from settings, default to 20 if not present
+        # 1) Client override via query param
+        qp_value = request.query_params.get(self.page_size_query_param)
+        if qp_value is not None:
+            try:
+                qp_size = int(qp_value)
+                if qp_size > 0:
+                    return qp_size
+            except (TypeError, ValueError):
+                pass
+
+        # 2) Fallback from settings, default to 20 if not present
         fallback = getattr(settings, "REST_FRAMEWORK", {}).get("PAGE_SIZE", 20)
 
         try:
