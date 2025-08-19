@@ -91,6 +91,10 @@ class UserViewSet(FilterMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            # Ensure new users are staff by default
+            if not user.is_staff:
+                user.is_staff = True
+                user.save(update_fields=["is_staff"])
             response_serializer = UserSerializer(user)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
