@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from ..models import GuardPropertyTariff
+from ..models import Guard, GuardPropertyTariff, Property
 from .guards import GuardSerializer
 from .properties import PropertySerializer
 
@@ -31,10 +31,17 @@ class GuardPropertyTariffSerializer(serializers.ModelSerializer):
 
 
 class GuardPropertyTariffCreateSerializer(serializers.ModelSerializer):
-    """Create-only serializer: restricts writable fields to guard, property, rate."""
+    """Create-only serializer for POST. Accepts guard_id, property_id, and rate."""
+
+    guard_id = serializers.PrimaryKeyRelatedField(
+        queryset=Guard.objects.all(), source="guard", write_only=True
+    )
+    property_id = serializers.PrimaryKeyRelatedField(
+        queryset=Property.objects.all(), source="property", write_only=True
+    )
 
     class Meta:
         model = GuardPropertyTariff
-        fields = ["guard", "property", "rate"]
+        fields = ["guard_id", "property_id", "rate"]
         # Require rate explicitly for clarity, even though model has a default.
         extra_kwargs = {"rate": {"required": True}}
