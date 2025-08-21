@@ -1,6 +1,11 @@
+import logging
+
+from django.conf import settings
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from common.mixins import BulkActionMixin, FilterMixin, SoftDeleteMixin
@@ -11,6 +16,8 @@ from ..serializers import (
     GuardPropertyTariffCreateSerializer,
     GuardPropertyTariffSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class GuardPropertyTariffViewSet(
@@ -145,13 +152,89 @@ class GuardPropertyTariffViewSet(
         return super().list(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_description="Create a new guard-property tariff",
-        request_body=GuardPropertyTariffCreateSerializer,
+        operation_description=(
+            "Create a new guard-property tariff. Preferred keys: guard_id, property_id, rate. "
+            "Legacy keys 'guard' and 'property' are accepted (deprecated) while "
+            "TARIFFS_ALLOW_LEGACY_KEYS=True."
+        ),
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            oneOf=[
+                openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    required=["guard_id", "property_id", "rate"],
+                    properties={
+                        "guard_id": openapi.Schema(
+                            type=openapi.TYPE_INTEGER,
+                            description="ID of the guard (preferred)",
+                        ),
+                        "property_id": openapi.Schema(
+                            type=openapi.TYPE_INTEGER,
+                            description="ID of the property (preferred)",
+                        ),
+                        "rate": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description="Decimal as string, e.g. '12.50'",
+                        ),
+                    },
+                ),
+                openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    required=["guard", "property", "rate"],
+                    properties={
+                        "guard": openapi.Schema(
+                            type=openapi.TYPE_INTEGER,
+                            description="DEPRECATED. Use guard_id.",
+                        ),
+                        "property": openapi.Schema(
+                            type=openapi.TYPE_INTEGER,
+                            description="DEPRECATED. Use property_id.",
+                        ),
+                        "rate": openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            description="Decimal as string, e.g. '12.50'",
+                        ),
+                    },
+                    description="Deprecated legacy payload shape",
+                ),
+            ],
+        ),
         responses={201: GuardPropertyTariffSerializer, 400: "Bad Request"},
     )
     def create(self, request, *args, **kwargs):
+        # Accept legacy payload keys by mapping to the new schema
+        # legacy: {"guard": <id>, "property": <id>, "rate": ".."}
+        # new:    {"guard_id": <id>, "property_id": <id>, "rate": ".."}
+        data = request.data.copy()
+        used_legacy = False
+        if getattr(settings, "TARIFFS_ALLOW_LEGACY_KEYS", True):
+            if "guard" in data and "guard_id" not in data:
+                data["guard_id"] = data["guard"]
+                del data["guard"]
+                used_legacy = True
+            if "property" in data and "property_id" not in data:
+                data["property_id"] = data["property"]
+                del data["property"]
+                used_legacy = True
+            if used_legacy:
+                logger.warning(
+                    "Deprecated payload keys 'guard'/'property' used on tariffs create; "
+                    "migrate to 'guard_id'/'property_id'. This compatibility will be removed in a future release."
+                )
+        else:
+            # Explicitly reject legacy keys when feature flag is disabled
+            if "guard" in data or "property" in data:
+                raise ValidationError(
+                    {
+                        "non_field_errors": [
+                            "Legacy payload keys 'guard'/'property' are not accepted. "
+                            "Use 'guard_id' and 'property_id'."
+                        ]
+                    }
+                )
+
         # Validate and create with the minimal create serializer
-        create_serializer = self.get_serializer(data=request.data)
+        create_serializer = self.get_serializer(data=data)
         create_serializer.is_valid(raise_exception=True)
         # Use perform_create to preserve business rules
         self.perform_create(create_serializer)

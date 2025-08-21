@@ -285,9 +285,46 @@ AWS_SECRET_ACCESS_KEY=your-aws-secret-key
 AWS_STORAGE_BUCKET_NAME=qu-security-static
 AWS_S3_REGION_NAME=us-east-1
 
-# Email Configuration (opcional)
-EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+    # Email Configuration (opcional)
+    EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+
+### Tarifa - Payload de creación y compatibilidad
+
+- __Preferido (nuevo)__
+```json
+{
+  "guard_id": 123,
+  "property_id": 456,
+  "rate": "12.50"
+}
 ```
+
+- __Legado (DEPRECATED)__
+```json
+{
+  "guard": 123,
+  "property": 456,
+  "rate": "12.50"
+}
+```
+
+- __Compatibilidad y deprecación__
+  - El endpoint acepta ambos formatos. El legado genera un warning en logs.
+  - Puede controlarse con el flag de entorno `TARIFFS_ALLOW_LEGACY_KEYS`.
+    - `True` (por defecto): acepta claves legado y mapea a las nuevas.
+    - `False`: rechaza `guard`/`property` con 400 y mensaje de error claro.
+  - La compatibilidad con claves legado será removida en una próxima release.
+
+- __Variable de entorno__
+```env
+# Feature flags
+# Allow legacy keys ('guard', 'property') in tariffs create payloads (deprecated)
+# Set to False to enforce new keys only ('guard_id', 'property_id')
+TARIFFS_ALLOW_LEGACY_KEYS=True
+```
+
+- __Swagger__
+  - La documentación de `/en/swagger/` muestra ambas formas (oneOf) y describe la deprecación.
 
 ### Comandos de Desarrollo
 

@@ -358,3 +358,10 @@ LOGGING = {
         },
     },
 }
+
+# Feature flags
+# Control acceptance of legacy payload keys for tariffs create endpoint.
+# Default True for backward compatibility; set to False to enforce new keys only.
+TARIFFS_ALLOW_LEGACY_KEYS = (
+    os.environ.get("TARIFFS_ALLOW_LEGACY_KEYS", "True").lower() == "true"
+)

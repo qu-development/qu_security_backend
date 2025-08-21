@@ -21,7 +21,8 @@
             "RDS_PASSWORD": "Rylai_BL2711#",
             "RDS_HOSTNAME": "qu-security-postgres.cjeaecg2g3iy.us-east-2.rds.amazonaws.com",
             "RDS_PORT": "5432",
-            "ALLOWED_HOSTS": ".execute-api.us-east-2.amazonaws.com"
+            "ALLOWED_HOSTS": ".execute-api.us-east-2.amazonaws.com",
+            "TARIFFS_ALLOW_LEGACY_KEYS": "True"
         },
         "vpc_config": {
             "SubnetIds": [],
@@ -65,7 +66,8 @@
             "RDS_PASSWORD": "Rylai_BL2711#",
             "RDS_HOSTNAME": "qu-security-postgres.cjeaecg2g3iy.us-east-2.rds.amazonaws.com",
             "RDS_PORT": "5432",
-            "ALLOWED_HOSTS": ".execute-api.us-east-2.amazonaws.com"
+            "ALLOWED_HOSTS": ".execute-api.us-east-2.amazonaws.com",
+            "TARIFFS_ALLOW_LEGACY_KEYS": "True"
         },
         "vpc_config": {
             "SubnetIds": [],
