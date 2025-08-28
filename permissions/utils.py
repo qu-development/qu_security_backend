@@ -258,6 +258,7 @@ class PermissionManager:
                         return True
 
         except UserRole.DoesNotExist:
+            # No explicit role; fall back to owner/explicit permission checks below
             pass
 
         # Owner fallback for property actions (allow owners to read/update/delete their properties)
@@ -356,7 +357,33 @@ class PermissionManager:
                     return queryset.none()
 
         except UserRole.DoesNotExist:
-            pass
+            # Fallbacks when a user has no explicit role assigned
+            if resource_type == "property":
+                # If the user is a Client owner, allow their own properties
+                try:
+                    client = Client.objects.get(user=user)
+                    return queryset.filter(owner=client)
+                except Client.DoesNotExist:
+                    pass
+            elif resource_type == "shift":
+                # If the user is a Client owner, allow shifts on their properties
+                try:
+                    client = Client.objects.get(user=user)
+                    return queryset.filter(property__owner=client)
+                except Client.DoesNotExist:
+                    pass
+                # If the user is a Guard, allow their own shifts
+                try:
+                    guard = Guard.objects.get(user=user)
+                    return queryset.filter(guard=guard)
+                except Guard.DoesNotExist:
+                    return queryset.none()
+            elif resource_type == "guard":
+                # If the user is a Guard, allow viewing their own guard profile
+                try:
+                    return queryset.filter(user=user)
+                except Exception:
+                    return queryset.none()
 
         return queryset.none()
 

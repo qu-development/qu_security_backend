@@ -41,7 +41,28 @@ class SoftDeleteMixin:
     @action(detail=True, methods=["post"])
     def restore(self, request, pk=None):
         """Restore a soft deleted object"""
-        obj = self.get_object()
+        # Try to fetch the object even if it's inactive using the model's
+        # unfiltered manager when available. Fallback to the default get_object.
+        obj = None
+        try:
+            model = getattr(self.get_queryset(), "model", None)
+        except Exception:  # pragma: no cover - defensive
+            model = None
+
+        if model and hasattr(model, "all_objects"):
+            obj = model.all_objects.filter(pk=pk).first()
+
+        if obj is None:
+            try:
+                obj = self.get_object()
+            except Exception:  # Not found in filtered queryset
+                obj = None
+
+        if obj is None:
+            return ResponseHelper.error_response(
+                message="Object not found", status_code=status.HTTP_404_NOT_FOUND
+            )
+
         ModelHelper.restore_object(obj)
         return ResponseHelper.success_response(
             message="Object restored successfully", status_code=status.HTTP_200_OK
