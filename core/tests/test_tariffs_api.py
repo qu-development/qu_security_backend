@@ -18,9 +18,7 @@ def test_tariff_create_forbidden_for_non_owner_client():
     UserRole.objects.create(user=owner_user, role="client", is_active=True)
     UserRole.objects.create(user=other_user, role="client", is_active=True)
 
-    prop = baker.make(
-        Property, owner=owner_client, address="Tariff Site"
-    )
+    prop = baker.make(Property, owner=owner_client, address="Tariff Site")
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
 

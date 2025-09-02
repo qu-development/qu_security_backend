@@ -16,5 +16,6 @@ class PropertyAdmin(admin.ModelAdmin):
     @admin.display(description="Services")
     def get_services(self, obj):
         from core.models import Service
+
         services = Service.objects.filter(assigned_property=obj)
         return ", ".join([s.name for s in services])

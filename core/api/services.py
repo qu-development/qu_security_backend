@@ -1,13 +1,12 @@
-from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from common.mixins import BulkActionMixin, FilterMixin, SoftDeleteMixin
-from permissions.permissions import IsAdminOrManager, create_resource_permission
+from permissions.permissions import create_resource_permission
 
-from ..models import Service, Shift
+from ..models import Service
 from ..serializers import (
     ServiceCreateSerializer,
     ServiceSerializer,
@@ -30,10 +29,19 @@ class ServiceViewSet(
     destroy: Deletes a service
     """
 
-    queryset = Service.objects.select_related('guard', 'assigned_property').all().order_by("id")
+    queryset = (
+        Service.objects.select_related("guard", "assigned_property")
+        .all()
+        .order_by("id")
+    )
     serializer_class = ServiceSerializer
-    search_fields = ['name', 'description', 'guard__user__username', 'assigned_property__name']
-    ordering_fields = ['id', 'name', 'rate', 'monthly_budget']
+    search_fields = [
+        "name",
+        "description",
+        "guard__user__username",
+        "assigned_property__name",
+    ]
+    ordering_fields = ["id", "name", "rate", "monthly_budget"]
 
     def get_permissions(self):
         """Return permissions based on action using resource permissions."""
@@ -60,9 +68,9 @@ class ServiceViewSet(
         return [p() for p in base]
 
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action == "create":
             return ServiceCreateSerializer
-        elif self.action in ['update', 'partial_update']:
+        elif self.action in ["update", "partial_update"]:
             return ServiceUpdateSerializer
         return ServiceSerializer
 
@@ -108,6 +116,7 @@ class ServiceViewSet(
     def destroy(self, request, *args, **kwargs):
         """Soft delete a service instead of hard delete"""
         from common.utils import ModelHelper
+
         obj = self.get_object()
         ModelHelper.soft_delete_object(obj)
         return Response(status=204)
@@ -116,12 +125,12 @@ class ServiceViewSet(
         operation_description="Get shifts for a specific service",
         responses={200: ShiftSerializer(many=True)},
     )
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=["get"])
     def shifts(self, request, pk=None):
         """Get all shifts for a specific service"""
         service = self.get_object()
-        shifts = service.shifts.all().order_by('-start_time')
-        
+        shifts = service.shifts.all().order_by("-start_time")
+
         serializer = ShiftSerializer(shifts, many=True)
         return Response(serializer.data)
 
@@ -129,13 +138,13 @@ class ServiceViewSet(
         operation_description="Get services by property",
         responses={200: ServiceSerializer(many=True)},
     )
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def by_property(self, request):
         """Filter services by property"""
-        property_id = request.query_params.get('property_id')
+        property_id = request.query_params.get("property_id")
         if not property_id:
-            return Response({'error': 'property_id parameter is required'}, status=400)
-        
+            return Response({"error": "property_id parameter is required"}, status=400)
+
         services = self.get_queryset().filter(assigned_property_id=property_id)
         serializer = self.get_serializer(services, many=True)
         return Response(serializer.data)
@@ -144,13 +153,13 @@ class ServiceViewSet(
         operation_description="Get services by guard",
         responses={200: ServiceSerializer(many=True)},
     )
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def by_guard(self, request):
         """Filter services by guard"""
-        guard_id = request.query_params.get('guard_id')
+        guard_id = request.query_params.get("guard_id")
         if not guard_id:
-            return Response({'error': 'guard_id parameter is required'}, status=400)
-        
+            return Response({"error": "guard_id parameter is required"}, status=400)
+
         services = self.get_queryset().filter(guard_id=guard_id)
         serializer = self.get_serializer(services, many=True)
         return Response(serializer.data)

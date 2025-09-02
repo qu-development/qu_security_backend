@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from core.models import Client, Expense, Guard, Property, PropertyTypeOfService, Service, Shift
+from core.models import (
+    Client,
+    Expense,
+    Guard,
+    Property,
+    PropertyTypeOfService,
+    Service,
+    Shift,
+)
 
 from .property import PropertyAdmin
 

@@ -133,9 +133,7 @@ class TestDataFactory:
         """Create a test property"""
         if not address:
             address = f"Test Address {owner.user.username}"
-        return Property.objects.create(
-            owner=owner, address=address, **kwargs
-        )
+        return Property.objects.create(owner=owner, address=address, **kwargs)
 
     @staticmethod
     def create_client(user=None, **kwargs):

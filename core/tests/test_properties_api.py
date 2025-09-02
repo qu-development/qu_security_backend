@@ -98,12 +98,8 @@ def test_alias_can_repeat_for_different_owners():
     url = reverse("core:property-list")
 
     # Same alias for different owners should both succeed
-    r1 = api1.post(
-        url, {"address": "One", "alias": "Shared"}, format="json"
-    )
-    r2 = api2.post(
-        url, {"address": "Two", "alias": "Shared"}, format="json"
-    )
+    r1 = api1.post(url, {"address": "One", "alias": "Shared"}, format="json")
+    r2 = api2.post(url, {"address": "Two", "alias": "Shared"}, format="json")
 
     assert r1.status_code == 201
     assert r2.status_code == 201
@@ -119,9 +115,7 @@ def test_blank_alias_normalized_to_none_and_no_conflict():
     url = reverse("core:property-list")
 
     # First with blank alias -> normalized to None
-    r1 = api.post(
-        url, {"address": "A", "alias": "   "}, format="json"
-    )
+    r1 = api.post(url, {"address": "A", "alias": "   "}, format="json")
     assert r1.status_code == 201
     assert r1.json()["alias"] is None
 
@@ -140,13 +134,9 @@ def test_alias_uniqueness_is_case_sensitive_allows_different_case():
     api.force_authenticate(user=user)
     url = reverse("core:property-list")
 
-    r1 = api.post(
-        url, {"address": "C1", "alias": "Alpha"}, format="json"
-    )
+    r1 = api.post(url, {"address": "C1", "alias": "Alpha"}, format="json")
     assert r1.status_code == 201
-    r2 = api.post(
-        url, {"address": "C2", "alias": "alpha"}, format="json"
-    )
+    r2 = api.post(url, {"address": "C2", "alias": "alpha"}, format="json")
     assert r2.status_code == 201
 
 
@@ -186,9 +176,7 @@ def test_owner_can_retrieve_and_update_property():
     user = baker.make(User)
     client_profile = baker.make(Client, user=user)
     UserRole.objects.create(user=user, role="client", is_active=True)
-    prop = baker.make(
-        Property, owner=client_profile, address="Old Addr", alias="Old"
-    )
+    prop = baker.make(Property, owner=client_profile, address="Old Addr", alias="Old")
 
     api = APIClient()
     api.force_authenticate(user=user)
@@ -213,12 +201,8 @@ def test_update_to_duplicate_alias_returns_400():
     client_profile = baker.make(Client, user=user)
     UserRole.objects.create(user=user, role="client", is_active=True)
 
-    baker.make(
-        Property, owner=client_profile, alias="ALPHA", address="X"
-    )
-    p2 = baker.make(
-        Property, owner=client_profile, alias="BETA", address="Y"
-    )
+    baker.make(Property, owner=client_profile, alias="ALPHA", address="X")
+    p2 = baker.make(Property, owner=client_profile, alias="BETA", address="Y")
 
     api = APIClient()
     api.force_authenticate(user=user)
@@ -268,9 +252,7 @@ def test_soft_delete_and_restore_flow():
     user = baker.make(User)
     client_profile = baker.make(Client, user=user)
     UserRole.objects.create(user=user, role="client", is_active=True)
-    prop = baker.make(
-        Property, owner=client_profile, address="ToRemove"
-    )
+    prop = baker.make(Property, owner=client_profile, address="ToRemove")
 
     api = APIClient()
     api.force_authenticate(user=user)

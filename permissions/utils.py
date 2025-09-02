@@ -251,7 +251,7 @@ class PermissionManager:
                     "service": ["read"],
                 },
                 "guard": {
-                    "shift": ["create", "read", "update"], 
+                    "shift": ["create", "read", "update"],
                     "property": ["read"],
                     "service": ["read"],
                 },

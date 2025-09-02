@@ -205,7 +205,6 @@ class PropertyViewSet(
                     ),
                 ),
                 "address": openapi.Schema(type=openapi.TYPE_STRING),
-
                 "alias": openapi.Schema(
                     type=openapi.TYPE_STRING,
                     nullable=True,
