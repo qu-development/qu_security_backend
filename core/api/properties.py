@@ -11,7 +11,11 @@ from permissions.permissions import create_resource_permission
 from permissions.utils import PermissionManager
 
 from ..models import Client, Property
-from ..serializers import PropertyDetailSerializer, PropertySerializer
+from ..serializers import (
+    PropertyDetailSerializer,
+    PropertyGuardsShiftsSerializer,
+    PropertySerializer,
+)
 
 
 class PropertyViewSet(
@@ -250,4 +254,15 @@ class PropertyViewSet(
         from ..serializers import ExpenseSerializer
 
         serializer = ExpenseSerializer(expenses, many=True)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_description="Get guards and shifts associated with a specific property",
+        responses={200: PropertyGuardsShiftsSerializer, 404: "Not Found"},
+    )
+    @action(detail=True, methods=["get"], url_path="guards-shifts")
+    def guards_shifts(self, request, pk=None):
+        """Get guards and shifts associated with a specific property"""
+        property_obj = self.get_object()
+        serializer = PropertyGuardsShiftsSerializer(property_obj)
         return Response(serializer.data)

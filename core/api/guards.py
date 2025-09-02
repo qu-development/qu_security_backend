@@ -1,5 +1,7 @@
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from common.mixins import BulkActionMixin, FilterMixin, SoftDeleteMixin
 from permissions.permissions import IsAdminOrManager
@@ -9,6 +11,7 @@ from ..models import Guard
 from ..serializers import (
     GuardCreateSerializer,
     GuardDetailSerializer,
+    GuardPropertiesShiftsSerializer,
     GuardSerializer,
     GuardUpdateSerializer,
 )
@@ -106,3 +109,14 @@ class GuardViewSet(
     def partial_update(self, request, *args, **kwargs):
         """Partially update guard information"""
         return super().partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_description="Get properties and shifts associated with a specific guard",
+        responses={200: GuardPropertiesShiftsSerializer, 404: "Not Found"},
+    )
+    @action(detail=True, methods=["get"], url_path="properties-shifts")
+    def properties_shifts(self, request, pk=None):
+        """Get properties and shifts associated with a specific guard"""
+        guard = self.get_object()
+        serializer = GuardPropertiesShiftsSerializer(guard)
+        return Response(serializer.data)

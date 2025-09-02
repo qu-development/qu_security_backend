@@ -9,10 +9,15 @@ from .expenses import ExpenseSerializer
 from .guards import (
     GuardCreateSerializer,
     GuardDetailSerializer,
+    GuardPropertiesShiftsSerializer,
     GuardSerializer,
     GuardUpdateSerializer,
 )
-from .properties import PropertyDetailSerializer, PropertySerializer
+from .properties import (
+    PropertyDetailSerializer,
+    PropertyGuardsShiftsSerializer,
+    PropertySerializer,
+)
 from .property_types import PropertyTypeOfServiceSerializer
 from .services import (
     ServiceCreateSerializer,
@@ -38,6 +43,7 @@ __all__ = [
     "GuardCreateSerializer",
     "GuardSerializer",
     "GuardDetailSerializer",
+    "GuardPropertiesShiftsSerializer",
     "GuardUpdateSerializer",
     # clients
     "ClientSerializer",
@@ -49,6 +55,7 @@ __all__ = [
     # properties
     "PropertySerializer",
     "PropertyDetailSerializer",
+    "PropertyGuardsShiftsSerializer",
     # services
     "ServiceSerializer",
     "ServiceCreateSerializer",

@@ -99,3 +99,43 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
         for expense in obj.expenses.all():
             total += expense.amount
         return total
+
+
+class PropertyGuardsShiftsSerializer(serializers.ModelSerializer):
+    """Serializer for Property with associated guards and shifts"""
+
+    owner_details = ClientSerializer(source="owner", read_only=True)
+    guards_and_shifts = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Property
+        fields = [
+            "id",
+            "owner_details",
+            "name",
+            "alias",
+            "address",
+            "contract_start_date",
+            "guards_and_shifts",
+        ]
+        read_only_fields = ["id"]
+
+    def get_guards_and_shifts(self, obj):
+        from .guards import GuardSerializer
+        from .shifts import ShiftSerializer
+
+        # Get all shifts for this property
+        shifts = obj.shifts.select_related("guard", "service").all()
+
+        # Group shifts by guard
+        guards_data = {}
+        for shift in shifts:
+            guard_id = shift.guard.id
+            if guard_id not in guards_data:
+                guards_data[guard_id] = {
+                    "guard": GuardSerializer(shift.guard).data,
+                    "shifts": [],
+                }
+            guards_data[guard_id]["shifts"].append(ShiftSerializer(shift).data)
+
+        return list(guards_data.values())

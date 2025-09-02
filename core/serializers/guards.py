@@ -46,6 +46,53 @@ class GuardSerializer(serializers.ModelSerializer):
         return full or obj.user.username
 
 
+class GuardPropertiesShiftsSerializer(serializers.ModelSerializer):
+    """Serializer for Guard with associated properties and shifts"""
+
+    user_details = UserSerializer(source="user", read_only=True)
+    name = serializers.SerializerMethodField()
+    properties_and_shifts = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Guard
+        fields = [
+            "id",
+            "user_details",
+            "name",
+            "birth_date",
+            "phone",
+            "address",
+            "properties_and_shifts",
+        ]
+        read_only_fields = ["id"]
+
+    def get_name(self, obj):
+        fn = (obj.user.first_name or "").strip()
+        ln = (obj.user.last_name or "").strip()
+        full = f"{fn} {ln}".strip()
+        return full or obj.user.username
+
+    def get_properties_and_shifts(self, obj):
+        from .properties import PropertySerializer
+        from .shifts import ShiftSerializer
+
+        # Get all shifts for this guard
+        shifts = obj.shifts.select_related("property", "service").all()
+
+        # Group shifts by property
+        properties_data = {}
+        for shift in shifts:
+            property_id = shift.property.id
+            if property_id not in properties_data:
+                properties_data[property_id] = {
+                    "property": PropertySerializer(shift.property).data,
+                    "shifts": [],
+                }
+            properties_data[property_id]["shifts"].append(ShiftSerializer(shift).data)
+
+        return list(properties_data.values())
+
+
 class GuardUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating Guard model including user fields"""
 
