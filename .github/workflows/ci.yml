@@ -101,6 +101,10 @@ jobs:
       run: |
         python manage.py migrate
 
+    - name: Setup permissions and groups
+      run: |
+        python manage.py setup_permissions
+
     - name: Run pytest
       run: |
         pytest -q
@@ -108,6 +112,7 @@ jobs:
     - name: Generate coverage report
       run: |
         pip install coverage
+        python manage.py setup_permissions
         coverage run -m pytest
         coverage xml
 
