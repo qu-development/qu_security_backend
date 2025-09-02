@@ -69,6 +69,7 @@ zappa_settings_*.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+.gitattributes
 
 # Logs
 *.log

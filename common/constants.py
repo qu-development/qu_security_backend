@@ -18,6 +18,7 @@ RESOURCE_TYPES = [
     ("expense", "Expense"),
     ("guard", "Guard"),
     ("client", "Client"),
+    ("service", "Service"),
 ]
 
 ACTION_TYPES = [

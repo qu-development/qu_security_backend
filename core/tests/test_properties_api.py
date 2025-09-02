@@ -18,7 +18,6 @@ def test_property_create_by_client_sets_owner():
 
     payload = {
         "address": "456 New Street",
-        "total_hours": 120,
         "alias": "HQ",
     }
 
@@ -42,7 +41,6 @@ def test_property_create_non_client_returns_400():
 
     payload = {
         "address": "789 Lone Street",
-        "total_hours": 80,
     }
 
     # Act
@@ -69,7 +67,7 @@ def test_alias_uniqueness_per_owner_on_create_returns_400():
     url = reverse("core:property-list")
     resp1 = api.post(
         url,
-        {"address": "A St", "total_hours": 10, "alias": "Alpha"},
+        {"address": "A St", "alias": "Alpha"},
         format="json",
     )
     assert resp1.status_code == 201
@@ -77,7 +75,7 @@ def test_alias_uniqueness_per_owner_on_create_returns_400():
     # Second with same alias for same owner fails
     resp2 = api.post(
         url,
-        {"address": "B St", "total_hours": 20, "alias": "Alpha"},
+        {"address": "B St", "alias": "Alpha"},
         format="json",
     )
     assert resp2.status_code == 400
@@ -101,10 +99,10 @@ def test_alias_can_repeat_for_different_owners():
 
     # Same alias for different owners should both succeed
     r1 = api1.post(
-        url, {"address": "One", "total_hours": 10, "alias": "Shared"}, format="json"
+        url, {"address": "One", "alias": "Shared"}, format="json"
     )
     r2 = api2.post(
-        url, {"address": "Two", "total_hours": 20, "alias": "Shared"}, format="json"
+        url, {"address": "Two", "alias": "Shared"}, format="json"
     )
 
     assert r1.status_code == 201
@@ -122,13 +120,13 @@ def test_blank_alias_normalized_to_none_and_no_conflict():
 
     # First with blank alias -> normalized to None
     r1 = api.post(
-        url, {"address": "A", "total_hours": 10, "alias": "   "}, format="json"
+        url, {"address": "A", "alias": "   "}, format="json"
     )
     assert r1.status_code == 201
     assert r1.json()["alias"] is None
 
     # Second with blank alias should also succeed (NULLs don't conflict)
-    r2 = api.post(url, {"address": "B", "total_hours": 20, "alias": ""}, format="json")
+    r2 = api.post(url, {"address": "B", "alias": ""}, format="json")
     assert r2.status_code == 201
     assert r2.json()["alias"] is None
 
@@ -143,11 +141,11 @@ def test_alias_uniqueness_is_case_sensitive_allows_different_case():
     url = reverse("core:property-list")
 
     r1 = api.post(
-        url, {"address": "C1", "total_hours": 10, "alias": "Alpha"}, format="json"
+        url, {"address": "C1", "alias": "Alpha"}, format="json"
     )
     assert r1.status_code == 201
     r2 = api.post(
-        url, {"address": "C2", "total_hours": 10, "alias": "alpha"}, format="json"
+        url, {"address": "C2", "alias": "alpha"}, format="json"
     )
     assert r2.status_code == 201
 
@@ -164,8 +162,8 @@ def test_client_list_scoped_to_owner():
     UserRole.objects.create(user=u2, role="client", is_active=True)
 
     # Properties for both
-    baker.make(Property, owner=c1, address="Owner1 St", total_hours=5)
-    baker.make(Property, owner=c2, address="Owner2 St", total_hours=6)
+    baker.make(Property, owner=c1, address="Owner1 St")
+    baker.make(Property, owner=c2, address="Owner2 St")
 
     api = APIClient()
     api.force_authenticate(user=u1)
@@ -189,7 +187,7 @@ def test_owner_can_retrieve_and_update_property():
     client_profile = baker.make(Client, user=user)
     UserRole.objects.create(user=user, role="client", is_active=True)
     prop = baker.make(
-        Property, owner=client_profile, address="Old Addr", total_hours=10, alias="Old"
+        Property, owner=client_profile, address="Old Addr", alias="Old"
     )
 
     api = APIClient()
@@ -216,10 +214,10 @@ def test_update_to_duplicate_alias_returns_400():
     UserRole.objects.create(user=user, role="client", is_active=True)
 
     baker.make(
-        Property, owner=client_profile, alias="ALPHA", address="X", total_hours=1
+        Property, owner=client_profile, alias="ALPHA", address="X"
     )
     p2 = baker.make(
-        Property, owner=client_profile, alias="BETA", address="Y", total_hours=1
+        Property, owner=client_profile, alias="BETA", address="Y"
     )
 
     api = APIClient()
@@ -240,7 +238,7 @@ def test_non_owner_cannot_retrieve_or_update_or_soft_delete():
     owner_user = baker.make(User)
     owner_client = baker.make(Client, user=owner_user)
     UserRole.objects.create(user=owner_user, role="client", is_active=True)
-    prop = baker.make(Property, owner=owner_client, address="Secured", total_hours=10)
+    prop = baker.make(Property, owner=owner_client, address="Secured")
 
     other_user = baker.make(User)
     baker.make(Client, user=other_user)
@@ -271,7 +269,7 @@ def test_soft_delete_and_restore_flow():
     client_profile = baker.make(Client, user=user)
     UserRole.objects.create(user=user, role="client", is_active=True)
     prop = baker.make(
-        Property, owner=client_profile, address="ToRemove", total_hours=10
+        Property, owner=client_profile, address="ToRemove"
     )
 
     api = APIClient()
@@ -316,7 +314,6 @@ def test_property_create_by_non_client_with_add_permission_and_owner_succeeds():
     payload = {
         "owner": owner_client.id,
         "address": "Ext Created",
-        "total_hours": 15,
         "alias": "External",
     }
 
@@ -345,7 +342,6 @@ def test_property_create_by_non_client_with_add_permission_missing_owner_returns
 
     payload = {
         "address": "No Owner",
-        "total_hours": 5,
     }
 
     # Act

@@ -93,3 +93,17 @@ class ShiftViewSet(
             serializer = self.get_serializer(shifts, many=True)
             return Response(serializer.data)
         return Response({"error": "property_id parameter is required"}, status=400)
+
+    @swagger_auto_schema(
+        operation_description="Get shifts by service",
+        responses={200: ShiftSerializer(many=True)},
+    )
+    @action(detail=False, methods=["get"])
+    def by_service(self, request):
+        """Get shifts filtered by service ID"""
+        service_id = request.query_params.get("service_id")
+        if service_id:
+            shifts = self.get_queryset().filter(service_id=service_id)
+            serializer = self.get_serializer(shifts, many=True)
+            return Response(serializer.data)
+        return Response({"error": "service_id parameter is required"}, status=400)

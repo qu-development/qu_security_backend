@@ -23,6 +23,14 @@ class Shift(BaseModel):
         related_name="shifts",
         verbose_name=_("Property"),
     )
+    service = models.ForeignKey(
+        "Service",
+        on_delete=models.CASCADE,
+        related_name="shifts",
+        verbose_name=_("Service"),
+        null=True,
+        blank=True,
+    )
     start_time = models.DateTimeField(verbose_name=_("Start Time"))
     end_time = models.DateTimeField(verbose_name=_("End Time"))
     hours_worked = models.PositiveIntegerField(

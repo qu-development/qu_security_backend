@@ -43,8 +43,8 @@ def test_guard_list_as_client_shows_only_guards_on_owned_properties():
     UserRole.objects.create(user=client_user1, role="client", is_active=True)
     UserRole.objects.create(user=client_user2, role="client", is_active=True)
 
-    p1 = baker.make(Property, owner=client1, address="P1", total_hours=10)
-    p2 = baker.make(Property, owner=client2, address="P2", total_hours=20)
+    p1 = baker.make(Property, owner=client1, address="P1")
+    p2 = baker.make(Property, owner=client2, address="P2")
 
     gu1 = baker.make(User)
     gu2 = baker.make(User)

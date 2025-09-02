@@ -86,7 +86,7 @@ class BaseAPITestCase(APITestCase):
 
         # Create property
         self.property = Property.objects.create(
-            owner=self.client_profile, address="123 Test Street", total_hours=100
+            owner=self.client_profile, address="123 Test Street"
         )
 
     def authenticate_as(self, user):
@@ -134,7 +134,7 @@ class TestDataFactory:
         if not address:
             address = f"Test Address {owner.user.username}"
         return Property.objects.create(
-            owner=owner, address=address, total_hours=100, **kwargs
+            owner=owner, address=address, **kwargs
         )
 
     @staticmethod

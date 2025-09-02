@@ -35,9 +35,9 @@ Ordering is enabled globally via Django REST Framework’s `OrderingFilter` in `
 ## Properties
 - Path: `/<lang>/api/properties/`
 - ViewSet: `core/api/properties.py::PropertyViewSet`
-- Allowed ordering fields (declared): `id`, `name`, `alias`, `monthly_rate`, `total_hours`, `contract_start_date`
+- Allowed ordering fields (declared): `id`, `name`, `alias`, `contract_start_date`
 - Default ordering: `id`
-- Example: `/en/api/properties/?ordering=-monthly_rate`
+- Example: `/en/api/properties/?ordering=-contract_start_date`
 
 ## Expenses
 - Path: `/<lang>/api/expenses/`

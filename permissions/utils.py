@@ -228,19 +228,33 @@ class PermissionManager:
 
             # Role-based permissions
             role_permissions = {
+                "admin": {
+                    "property": ["create", "read", "update", "delete", "assign"],
+                    "shift": ["create", "read", "update", "delete", "approve"],
+                    "expense": ["create", "read", "update", "delete", "approve"],
+                    "guard": ["create", "read", "update", "delete"],
+                    "client": ["create", "read", "update", "delete"],
+                    "service": ["create", "read", "update", "delete"],
+                },
                 "manager": {
                     "property": ["create", "read", "update", "delete", "assign"],
                     "shift": ["read", "update", "approve"],
                     "expense": ["read", "approve"],
                     "guard": ["read", "update"],
                     "client": ["read", "update"],
+                    "service": ["create", "read", "update", "delete"],
                 },
                 "client": {
                     "property": ["create", "read", "update"],
                     "expense": ["create", "read", "update", "delete"],
                     "shift": ["read"],
+                    "service": ["read"],
                 },
-                "guard": {"shift": ["create", "read", "update"], "property": ["read"]},
+                "guard": {
+                    "shift": ["create", "read", "update"], 
+                    "property": ["read"],
+                    "service": ["read"],
+                },
             }
 
             if user_role.role in role_permissions:

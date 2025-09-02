@@ -3,6 +3,7 @@ from rest_framework import serializers
 from ..models import Shift
 from .guards import GuardSerializer
 from .properties import PropertySerializer
+from .services import ServiceSerializer
 
 
 class ShiftSerializer(serializers.ModelSerializer):
@@ -10,6 +11,7 @@ class ShiftSerializer(serializers.ModelSerializer):
 
     guard_details = GuardSerializer(source="guard", read_only=True)
     property_details = PropertySerializer(source="property", read_only=True)
+    service_details = ServiceSerializer(source="service", read_only=True)
 
     class Meta:
         model = Shift
@@ -19,6 +21,8 @@ class ShiftSerializer(serializers.ModelSerializer):
             "guard_details",
             "property",
             "property_details",
+            "service",
+            "service_details",
             "start_time",
             "end_time",
             "hours_worked",

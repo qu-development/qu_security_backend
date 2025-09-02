@@ -14,7 +14,7 @@ def test_shift_list_guard_sees_only_own_shifts():
     # Arrange: two guards, one client/property, two shifts (one per guard)
     owner_user = baker.make(User)
     client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=client, address="Alpha Site", total_hours=8)
+    prop = baker.make(Property, owner=client, address="Alpha Site")
 
     guard_user_1 = baker.make(User)
     guard_1 = baker.make(Guard, user=guard_user_1)
@@ -58,11 +58,11 @@ def test_shift_list_client_sees_only_shifts_on_their_properties():
     # Arrange: two clients, one property each, shared guard
     client_user_1 = baker.make(User)
     client_1 = baker.make(Client, user=client_user_1)
-    prop_1 = baker.make(Property, owner=client_1, address="P1", total_hours=8)
+    prop_1 = baker.make(Property, owner=client_1, address="P1")
 
     client_user_2 = baker.make(User)
     client_2 = baker.make(Client, user=client_user_2)
-    prop_2 = baker.make(Property, owner=client_2, address="P2", total_hours=8)
+    prop_2 = baker.make(Property, owner=client_2, address="P2")
 
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
@@ -105,7 +105,7 @@ def test_shift_update_assigned_guard_ok_and_other_guard_forbidden():
     # Arrange
     owner_user = baker.make(User)
     client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=client, address="Gamma", total_hours=8)
+    prop = baker.make(Property, owner=client, address="Gamma")
 
     guard_user_1 = baker.make(User)
     guard_1 = baker.make(Guard, user=guard_user_1)
@@ -144,7 +144,7 @@ def test_shift_update_manager_ok():
     manager_user = baker.make(User)
     owner_user = baker.make(User)
     client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=client, address="Delta", total_hours=8)
+    prop = baker.make(Property, owner=client, address="Delta")
 
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
@@ -182,7 +182,7 @@ def test_shift_soft_delete_and_restore():
 
     owner_user = baker.make(User)
     client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=client, address="Omega", total_hours=8)
+    prop = baker.make(Property, owner=client, address="Omega")
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
     shift = baker.make(
@@ -224,7 +224,7 @@ def test_shift_by_guard_and_by_property_filters():
     # Arrange
     owner_user = baker.make(User)
     client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=client, address="Lambda", total_hours=8)
+    prop = baker.make(Property, owner=client, address="Lambda")
 
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
@@ -258,7 +258,7 @@ def test_shift_validation_end_time_after_start_time():
     # Arrange
     owner_user = baker.make(User)
     client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=client, address="Kappa", total_hours=8)
+    prop = baker.make(Property, owner=client, address="Kappa")
 
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)

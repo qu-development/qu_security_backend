@@ -273,30 +273,11 @@ def create_test_data(apps, schema_editor):
 
             full_address = f"{street}, {city}, {state} {zipcode}"
 
-            if property_type == "office":
-                base_rate = random.randint(2000, 8000)
-            elif property_type == "retail":
-                base_rate = random.randint(3000, 12000)
-            elif property_type == "warehouse":
-                base_rate = random.randint(1500, 5000)
-            elif property_type == "residential":
-                base_rate = random.randint(1000, 4000)
-            else:
-                base_rate = random.randint(2500, 10000)
-
-            monthly_rate = Decimal(f"{base_rate}.{random.randint(0, 99):02d}")
             start_date = (
                 fake.date_between(start_date="-2y", end_date="today")
                 if HAS_FAKER
                 else timezone.now().date()
             )
-
-            if property_type in ["office", "retail"]:
-                total_hours = random.choice([8, 12])
-            elif property_type == "residential":
-                total_hours = 24
-            else:
-                total_hours = random.choice([12, 16, 24])
 
             properties_to_create.append(
                 Property(
@@ -304,9 +285,7 @@ def create_test_data(apps, schema_editor):
                     name=name[:100],
                     alias=f"PROP{i+1:04d}" if random.choice([True, False]) else None,
                     address=full_address[:200],
-                    monthly_rate=monthly_rate,
                     contract_start_date=start_date,
-                    total_hours=total_hours,
                 )
             )
 
@@ -366,7 +345,7 @@ def reverse_test_data(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0009_remove_guardpropertytariff_unique_guard_property_tariff_and_more'),
+        ('core', '0010_remove_property_monthly_rate_and_more'),
         ('permissions', '0001_initial'),  # Ensure permissions app is migrated
     ]
 

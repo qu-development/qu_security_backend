@@ -12,7 +12,7 @@ def test_shift_create_by_any_authenticated_user_succeeds():
     # Arrange: create a property (owned by a client) and a guard
     owner_user = baker.make(User)
     owner_client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=owner_client, address="Site A", total_hours=8)
+    prop = baker.make(Property, owner=owner_client, address="Site A")
 
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
@@ -44,7 +44,7 @@ def test_shift_create_by_guard_for_self_succeeds():
     # Arrange: create a property and authenticate as a guard user
     owner_user = baker.make(User)
     owner_client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=owner_client, address="Site B", total_hours=10)
+    prop = baker.make(Property, owner=owner_client, address="Site B")
 
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
@@ -75,7 +75,7 @@ def test_shift_create_unauthenticated_returns_401():
     # Arrange: create a property and a guard
     owner_user = baker.make(User)
     owner_client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=owner_client, address="Site C", total_hours=6)
+    prop = baker.make(Property, owner=owner_client, address="Site C")
 
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)

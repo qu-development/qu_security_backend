@@ -819,7 +819,6 @@ Response: [
     "owner": {...},
     "address": "456 Property Ave",
     "description": "Edificio comercial",
-    "total_hours": 168,
     "user_access": {
       "access_type": "owner",
       "can_create_shifts": true,

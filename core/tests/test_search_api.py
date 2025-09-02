@@ -27,7 +27,6 @@ def test_properties_search_by_fields():
         name="NAME-UNIQ-PROP-1",
         alias="ALIAS-UNIQ-PROP-1",
         address="ADDR-UNIQ-PROP-1",
-        total_hours=10,
     )
 
     owner2_user = baker.make(
@@ -44,7 +43,6 @@ def test_properties_search_by_fields():
         name="NAME-UNIQ-PROP-2",
         alias="ALIAS-UNIQ-PROP-2",
         address="ADDR-UNIQ-PROP-2",
-        total_hours=12,
     )
 
     api = APIClient()

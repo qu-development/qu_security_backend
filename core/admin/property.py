@@ -5,17 +5,16 @@ from django.contrib import admin
 class PropertyAdmin(admin.ModelAdmin):
     list_display = (
         "owner__user__first_name",
-        "monthly_rate",
         "name",
         "alias",
         "address",
-        "get_types_of_service",
+        "get_services",
         "contract_start_date",
-        "total_hours",
     )
     list_display_links = list_display
-    filter_horizontal = ("types_of_service",)
 
-    @admin.display(description="Types of Service")
-    def get_types_of_service(self, obj):
-        return ", ".join([t.name for t in obj.types_of_service.all()])
+    @admin.display(description="Services")
+    def get_services(self, obj):
+        from core.models import Service
+        services = Service.objects.filter(assigned_property=obj)
+        return ", ".join([s.name for s in services])

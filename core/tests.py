@@ -62,7 +62,7 @@ class PropertyAPITestCase(BaseAPITestCase):
     def test_client_can_create_property(self):
         """Test that client can create property"""
         self.authenticate_as(self.client_user)
-        property_data = {"address": "456 New Street", "total_hours": 120}
+        property_data = {"address": "456 New Street"}
         response = self.client.post("/en/api/properties/", property_data)
         self.assert_response_success(response, 201)
 

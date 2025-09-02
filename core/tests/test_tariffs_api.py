@@ -19,7 +19,7 @@ def test_tariff_create_forbidden_for_non_owner_client():
     UserRole.objects.create(user=other_user, role="client", is_active=True)
 
     prop = baker.make(
-        Property, owner=owner_client, address="Tariff Site", total_hours=8
+        Property, owner=owner_client, address="Tariff Site"
     )
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
@@ -48,7 +48,7 @@ def test_tariff_create_by_owner_succeeds_and_deactivates_previous_active():
     client = baker.make(Client, user=user)
     UserRole.objects.create(user=user, role="client", is_active=True)
 
-    prop = baker.make(Property, owner=client, address="P1", total_hours=10)
+    prop = baker.make(Property, owner=client, address="P1")
     guard_user = baker.make(User)
     guard = baker.make(Guard, user=guard_user)
 
@@ -81,8 +81,8 @@ def test_tariff_list_filtered_for_guard_shows_only_own_tariffs():
     # Arrange: two guards, each linked to a property via tariffs
     owner_user = baker.make(User)
     owner_client = baker.make(Client, user=owner_user)
-    p = baker.make(Property, owner=owner_client, address="Site A", total_hours=8)
-    q = baker.make(Property, owner=owner_client, address="Site B", total_hours=8)
+    p = baker.make(Property, owner=owner_client, address="Site A")
+    q = baker.make(Property, owner=owner_client, address="Site B")
 
     guser1 = baker.make(User)
     guser2 = baker.make(User)
@@ -115,7 +115,7 @@ def test_tariff_by_guard_action_filters_correctly():
     # Arrange
     owner_user = baker.make(User)
     owner_client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=owner_client, address="A", total_hours=8)
+    prop = baker.make(Property, owner=owner_client, address="A")
 
     guser = baker.make(User)
     g = baker.make(Guard, user=guser)
@@ -157,7 +157,7 @@ def test_tariff_update_set_active_true_deactivates_others():
     client = baker.make(Client, user=user)
     UserRole.objects.create(user=user, role="client", is_active=True)
 
-    prop = baker.make(Property, owner=client, address="P2", total_hours=10)
+    prop = baker.make(Property, owner=client, address="P2")
     guser = baker.make(User)
     g = baker.make(Guard, user=guser)
 
@@ -191,7 +191,7 @@ def test_tariff_retrieve_guard_cannot_access_others_tariff():
     # Arrange: two guards, tariff belongs to g1, authenticate as g2
     owner_user = baker.make(User)
     owner_client = baker.make(Client, user=owner_user)
-    prop = baker.make(Property, owner=owner_client, address="Site Z", total_hours=8)
+    prop = baker.make(Property, owner=owner_client, address="Site Z")
 
     guser1 = baker.make(User)
     guser2 = baker.make(User)

@@ -43,8 +43,6 @@ class PropertyViewSet(
         "id",
         "name",
         "alias",
-        "monthly_rate",
-        "total_hours",
         "contract_start_date",
     ]
 
@@ -197,7 +195,7 @@ class PropertyViewSet(
         ),
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
-            required=["address", "total_hours"],
+            required=["address"],
             properties={
                 "owner": openapi.Schema(
                     type=openapi.TYPE_INTEGER,
@@ -207,9 +205,7 @@ class PropertyViewSet(
                     ),
                 ),
                 "address": openapi.Schema(type=openapi.TYPE_STRING),
-                "total_hours": openapi.Schema(
-                    type=openapi.TYPE_INTEGER, description="Total hours budgeted"
-                ),
+
                 "alias": openapi.Schema(
                     type=openapi.TYPE_STRING,
                     nullable=True,
@@ -218,14 +214,6 @@ class PropertyViewSet(
                     ),
                 ),
                 "name": openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
-                "types_of_service": openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Items(type=openapi.TYPE_INTEGER),
-                    description="List of PropertyTypeOfService IDs",
-                ),
-                "monthly_rate": openapi.Schema(
-                    type=openapi.TYPE_NUMBER, description="Monthly rate"
-                ),
                 "contract_start_date": openapi.Schema(
                     type=openapi.TYPE_STRING, format="date"
                 ),

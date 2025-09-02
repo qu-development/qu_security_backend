@@ -9,6 +9,7 @@ from .api.expenses import ExpenseViewSet
 from .api.guards import GuardViewSet
 from .api.properties import PropertyViewSet
 from .api.property_types import PropertyTypeOfServiceViewSet
+from .api.services import ServiceViewSet
 from .api.shifts import ShiftViewSet
 from .api.tariffs import GuardPropertyTariffViewSet
 from .api.users import UserViewSet
@@ -21,6 +22,7 @@ router.register(r"users", UserViewSet, basename="user")
 router.register(r"guards", GuardViewSet, basename="guard")
 router.register(r"clients", ClientViewSet, basename="client")
 router.register(r"properties", PropertyViewSet, basename="property")
+router.register(r"services", ServiceViewSet, basename="service")
 router.register(r"shifts", ShiftViewSet, basename="shift")
 router.register(r"expenses", ExpenseViewSet, basename="expense")
 router.register(
