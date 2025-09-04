@@ -11,6 +11,7 @@ class Property(BaseModel):
         related_name="properties",
         verbose_name=_("Owner"),
     )
+    description = models.TextField(verbose_name=_("Description"), null=True, blank=True)
     name = models.CharField(max_length=255, verbose_name=_("Name"), null=True)
     alias = models.CharField(
         max_length=255, verbose_name=_("Alias"), null=True, blank=True

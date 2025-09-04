@@ -19,6 +19,7 @@ class PropertySerializer(serializers.ModelSerializer):
             "name",
             "alias",
             "address",
+            "description",
             "contract_start_date",
         ]
 
@@ -79,6 +80,7 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
             "name",
             "alias",
             "address",
+            "description",
             "contract_start_date",
             "shifts_count",
             "expenses_count",

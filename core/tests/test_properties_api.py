@@ -19,6 +19,7 @@ def test_property_create_by_client_sets_owner():
     payload = {
         "address": "456 New Street",
         "alias": "HQ",
+        "description": "Headquarters building with 3 floors",
     }
 
     # Act
@@ -30,6 +31,7 @@ def test_property_create_by_client_sets_owner():
     data = resp.json()
     assert data["owner"] == client_profile.id
     assert data["alias"] == "HQ"
+    assert data["description"] == "Headquarters building with 3 floors"
 
 
 @pytest.mark.django_db
@@ -41,6 +43,7 @@ def test_property_create_non_client_returns_400():
 
     payload = {
         "address": "789 Lone Street",
+        "description": "Warehouse facility",
     }
 
     # Act
@@ -188,10 +191,13 @@ def test_owner_can_retrieve_and_update_property():
 
     # Update
     r_patch = api.patch(
-        url_detail, {"alias": "New", "address": "New Addr"}, format="json"
+        url_detail,
+        {"alias": "New", "address": "New Addr", "description": "Updated description"},
+        format="json",
     )
     assert r_patch.status_code == 200
     assert r_patch.json()["alias"] == "New"
+    assert r_patch.json()["description"] == "Updated description"
 
 
 @pytest.mark.django_db
