@@ -13,6 +13,7 @@ from .api.services import ServiceViewSet
 from .api.shifts import ShiftViewSet
 from .api.tariffs import GuardPropertyTariffViewSet
 from .api.users import UserViewSet
+from .api.weapons import WeaponViewSet
 
 app_name = "core"
 
@@ -35,6 +36,7 @@ router.register(
     GuardPropertyTariffViewSet,
     basename="guard-property-tariff",
 )
+router.register(r"weapons", WeaponViewSet, basename="weapon")
 
 # The API URLs are now determined automatically by the router
 urlpatterns = [

@@ -31,6 +31,7 @@ class Shift(BaseModel):
         null=True,
         blank=True,
     )
+    is_armed = models.BooleanField(default=False, verbose_name=_("Is Armed"))
     start_time = models.DateTimeField(verbose_name=_("Start Time"))
     end_time = models.DateTimeField(verbose_name=_("End Time"))
     hours_worked = models.PositiveIntegerField(

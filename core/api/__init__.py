@@ -8,6 +8,7 @@ from .property_types import PropertyTypeOfServiceViewSet
 from .shifts import ShiftViewSet
 from .tariffs import GuardPropertyTariffViewSet
 from .users import UserViewSet
+from .weapons import WeaponViewSet
 
 __all__ = [
     "CustomTokenObtainPairSerializer",
@@ -20,4 +21,5 @@ __all__ = [
     "ExpenseViewSet",
     "PropertyTypeOfServiceViewSet",
     "GuardPropertyTariffViewSet",
+    "WeaponViewSet",
 ]

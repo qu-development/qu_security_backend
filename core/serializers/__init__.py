@@ -32,6 +32,11 @@ from .users import (
     UserSerializer,
     UserUpdateSerializer,
 )
+from .weapons import (
+    WeaponCreateSerializer,
+    WeaponSerializer,
+    WeaponUpdateSerializer,
+)
 
 __all__ = [
     # users
@@ -67,4 +72,8 @@ __all__ = [
     # tariffs
     "GuardPropertyTariffSerializer",
     "GuardPropertyTariffCreateSerializer",
+    # weapons
+    "WeaponSerializer",
+    "WeaponCreateSerializer",
+    "WeaponUpdateSerializer",
 ]

@@ -1,9 +1,10 @@
 from rest_framework import serializers
 
-from ..models import Shift
+from ..models import Shift, Weapon
 from .guards import GuardSerializer
 from .properties import PropertySerializer
 from .services import ServiceSerializer
+from .weapons import WeaponSerializer
 
 
 class ShiftSerializer(serializers.ModelSerializer):
@@ -12,6 +13,7 @@ class ShiftSerializer(serializers.ModelSerializer):
     guard_details = GuardSerializer(source="guard", read_only=True)
     property_details = PropertySerializer(source="property", read_only=True)
     service_details = ServiceSerializer(source="service", read_only=True)
+    weapon_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Shift
@@ -27,6 +29,7 @@ class ShiftSerializer(serializers.ModelSerializer):
             "end_time",
             "hours_worked",
             "status",
+            "weapon_details",
         ]
         read_only_fields = ["id", "hours_worked"]
 
@@ -66,3 +69,11 @@ class ShiftSerializer(serializers.ModelSerializer):
         instance.hours_worked = self._compute_hours(start, end)
         instance.save(update_fields=["hours_worked", "updated_at"])
         return instance
+
+    def get_weapon_details(self, obj):
+        """Return the first weapon associated with the guard if the guard is armed."""
+        if obj.guard and obj.guard.is_armed:
+            weapon = Weapon.objects.filter(guard=obj.guard).first()
+            if weapon:
+                return WeaponSerializer(weapon).data
+        return None

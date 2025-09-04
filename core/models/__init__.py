@@ -8,3 +8,4 @@ from .property import Property as Property
 from .property_type_of_service import PropertyTypeOfService as PropertyTypeOfService
 from .service import Service as Service
 from .shift import Shift as Shift
+from .weapon import Weapon as Weapon

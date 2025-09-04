@@ -8,6 +8,7 @@ from core.models import (
     PropertyTypeOfService,
     Service,
     Shift,
+    Weapon,
 )
 
 from .property import PropertyAdmin
@@ -19,3 +20,4 @@ admin.site.register(Shift)
 admin.site.register(Expense)
 admin.site.register(PropertyTypeOfService)
 admin.site.register(Service)
+admin.site.register(Weapon)
