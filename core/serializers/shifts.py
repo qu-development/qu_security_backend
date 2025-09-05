@@ -29,6 +29,7 @@ class ShiftSerializer(serializers.ModelSerializer):
             "end_time",
             "hours_worked",
             "status",
+            "is_armed",
             "weapon_details",
         ]
         read_only_fields = ["id", "hours_worked"]

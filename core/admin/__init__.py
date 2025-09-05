@@ -12,6 +12,7 @@ from core.models import (
 )
 
 from .property import PropertyAdmin
+from .service import ServiceAdmin
 
 admin.site.register(Guard)
 admin.site.register(Client)
@@ -19,5 +20,5 @@ admin.site.register(Property, PropertyAdmin)
 admin.site.register(Shift)
 admin.site.register(Expense)
 admin.site.register(PropertyTypeOfService)
-admin.site.register(Service)
+admin.site.register(Service, ServiceAdmin)
 admin.site.register(Weapon)

@@ -51,6 +51,11 @@ class Service(BaseModel):
         verbose_name=_("Monthly Budget ($)"),
     )
 
+    # Contract start date for this service
+    contract_start_date = models.DateField(
+        verbose_name=_("Contract Start Date"), null=True, blank=True
+    )
+
     # Hours will be calculated based on completed shifts
     # This is a computed field that will be calculated dynamically
     @property

@@ -73,6 +73,7 @@ def service_instance(guard_instance, property_instance):
         assigned_property=property_instance,
         rate=Decimal("25.00"),
         monthly_budget=Decimal("2000.00"),
+        contract_start_date=timezone.now().date(),
     )
 
 
@@ -82,6 +83,7 @@ class TestServiceModel:
 
     def test_service_creation(self, guard_instance, property_instance):
         """Test creating a service"""
+        contract_date = timezone.now().date()
         service = Service.objects.create(
             name="Security Service",
             description="24/7 security monitoring",
@@ -89,6 +91,7 @@ class TestServiceModel:
             assigned_property=property_instance,
             rate=Decimal("30.00"),
             monthly_budget=Decimal("2400.00"),
+            contract_start_date=contract_date,
         )
 
         assert service.name == "Security Service"
@@ -97,6 +100,7 @@ class TestServiceModel:
         assert service.assigned_property == property_instance
         assert service.rate == Decimal("30.00")
         assert service.monthly_budget == Decimal("2400.00")
+        assert service.contract_start_date == contract_date
         assert service.is_active is True
 
     def test_service_without_guard(self, property_instance):
@@ -203,6 +207,7 @@ class TestServiceAPI:
             "assigned_property": property_instance.id,
             "rate": "40.00",
             "monthly_budget": "3200.00",
+            "contract_start_date": timezone.now().date().isoformat(),
         }
         response = api_client.post(url, data)
 
@@ -224,6 +229,7 @@ class TestServiceAPI:
             "assigned_property": property_instance.id,
             "rate": "25.00",
             "monthly_budget": "2000.00",
+            "contract_start_date": timezone.now().date().isoformat(),
         }
         response = api_client.post(url, data)
 
@@ -251,6 +257,7 @@ class TestServiceAPI:
             "description": "Updated description",
             "rate": "45.00",
             "monthly_budget": "3600.00",
+            "contract_start_date": timezone.now().date().isoformat(),
         }
         response = api_client.patch(url, data)
 

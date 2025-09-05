@@ -17,9 +17,6 @@ class Property(BaseModel):
         max_length=255, verbose_name=_("Alias"), null=True, blank=True
     )
     address = models.CharField(max_length=255, verbose_name=_("Address"))
-    contract_start_date = models.DateField(
-        verbose_name=_("Contract Start Date"), null=True
-    )
 
     class Meta:
         verbose_name = _("Property")

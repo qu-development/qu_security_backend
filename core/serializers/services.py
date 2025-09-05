@@ -26,6 +26,7 @@ class ServiceSerializer(serializers.ModelSerializer):
             "property_name",
             "rate",
             "monthly_budget",
+            "contract_start_date",
             "total_hours",
             "created_at",
             "updated_at",
@@ -46,6 +47,7 @@ class ServiceCreateSerializer(serializers.ModelSerializer):
             "assigned_property",
             "rate",
             "monthly_budget",
+            "contract_start_date",
         ]
 
 

@@ -9,7 +9,6 @@ class PropertyAdmin(admin.ModelAdmin):
         "alias",
         "address",
         "get_services",
-        "contract_start_date",
     )
     list_display_links = list_display
 

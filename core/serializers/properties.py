@@ -20,7 +20,6 @@ class PropertySerializer(serializers.ModelSerializer):
             "alias",
             "address",
             "description",
-            "contract_start_date",
         ]
 
         read_only_fields = ["id", "owner"]
@@ -81,7 +80,6 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
             "alias",
             "address",
             "description",
-            "contract_start_date",
             "shifts_count",
             "expenses_count",
             "total_expenses_amount",
@@ -117,7 +115,6 @@ class PropertyGuardsShiftsSerializer(serializers.ModelSerializer):
             "name",
             "alias",
             "address",
-            "contract_start_date",
             "guards_and_shifts",
         ]
         read_only_fields = ["id"]
