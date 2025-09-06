@@ -58,6 +58,8 @@ urlpatterns += i18n_patterns(
     path("admin/", admin.site.urls),
     # API endpoints
     path("api/", include("core.urls")),
+    # Mobile API endpoints
+    path("api/mobile/", include("mobile.urls")),
     # Common endpoints
     path("api/common/", include("common.urls")),
     # Permission-secured endpoints

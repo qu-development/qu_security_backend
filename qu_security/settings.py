@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "solo",  # django-solo for singleton models
     "common",  # Common utilities app
     "core",
+    "mobile",  # Mobile app
     "permissions",  # Custom permissions app
 ]
 
