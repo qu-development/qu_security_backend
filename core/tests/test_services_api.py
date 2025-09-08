@@ -174,7 +174,9 @@ class TestServiceAPI:
 
         assert response.status_code == 200
         assert len(response.data["results"]) >= 1
-        assert response.data["results"][0]["name"] == service_instance.name
+
+        service_names = [service["name"] for service in response.data["results"]]
+        assert service_instance.name in service_names
 
     def test_list_services_as_client(self, api_client, client_user, service_instance):
         """Test listing services as client (should see only related services)"""

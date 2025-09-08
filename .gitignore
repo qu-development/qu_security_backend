@@ -90,3 +90,6 @@ docs/_build/
 
 # Backup files
 *.bak
+
+# Guard Reports
+guard_reports/

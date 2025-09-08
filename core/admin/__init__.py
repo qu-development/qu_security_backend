@@ -11,10 +11,11 @@ from core.models import (
     Weapon,
 )
 
+from .guard import GuardAdmin
 from .property import PropertyAdmin
 from .service import ServiceAdmin
 
-admin.site.register(Guard)
+admin.site.register(Guard, GuardAdmin)
 admin.site.register(Client)
 admin.site.register(Property, PropertyAdmin)
 admin.site.register(Shift)
