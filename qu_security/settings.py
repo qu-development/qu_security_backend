@@ -366,3 +366,9 @@ LOGGING = {
 TARIFFS_ALLOW_LEGACY_KEYS = (
     os.environ.get("TARIFFS_ALLOW_LEGACY_KEYS", "True").lower() == "true"
 )
+
+# AWS SQS Configuration for Async Tasks
+USE_ASYNC_TASKS = os.environ.get("USE_ASYNC_TASKS", "False").lower() == "true"
+AWS_SQS_QUEUE_URL = os.environ.get("AWS_SQS_QUEUE_URL")
+AWS_SQS_REGION = os.environ.get("AWS_SQS_REGION", "us-east-1")
+AWS_SQS_DLQ_URL = os.environ.get("AWS_SQS_DLQ_URL")  # Dead Letter Queue
