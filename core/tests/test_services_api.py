@@ -84,6 +84,10 @@ class TestServiceModel:
     def test_service_creation(self, guard_instance, property_instance):
         """Test creating a service"""
         contract_date = timezone.now().date()
+        schedule_dates = [
+            timezone.now().date(),
+            timezone.now().date() + timezone.timedelta(days=7),
+        ]
         service = Service.objects.create(
             name="Security Service",
             description="24/7 security monitoring",
@@ -92,6 +96,8 @@ class TestServiceModel:
             rate=Decimal("30.00"),
             monthly_budget=Decimal("2400.00"),
             contract_start_date=contract_date,
+            schedule=schedule_dates,
+            recurrent=True,
         )
 
         assert service.name == "Security Service"
@@ -101,6 +107,8 @@ class TestServiceModel:
         assert service.rate == Decimal("30.00")
         assert service.monthly_budget == Decimal("2400.00")
         assert service.contract_start_date == contract_date
+        assert service.schedule == schedule_dates
+        assert service.recurrent is True
         assert service.is_active is True
 
     def test_service_without_guard(self, property_instance):
@@ -210,6 +218,11 @@ class TestServiceAPI:
             "rate": "40.00",
             "monthly_budget": "3200.00",
             "contract_start_date": timezone.now().date().isoformat(),
+            "schedule": [
+                timezone.now().date().isoformat(),
+                (timezone.now().date() + timezone.timedelta(days=7)).isoformat(),
+            ],
+            "recurrent": True,
         }
         response = api_client.post(url, data)
 
@@ -260,6 +273,8 @@ class TestServiceAPI:
             "rate": "45.00",
             "monthly_budget": "3600.00",
             "contract_start_date": timezone.now().date().isoformat(),
+            "schedule": [timezone.now().date().isoformat()],
+            "recurrent": False,
         }
         response = api_client.patch(url, data)
 

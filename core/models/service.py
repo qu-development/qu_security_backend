@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.postgres.fields import ArrayField
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -40,6 +41,8 @@ class Service(BaseModel):
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.00"))],
         verbose_name=_("Rate per Hour ($)"),
+        null=True,
+        blank=True,
     )
 
     # Monthly budget for this service (previously monthly_rate)
@@ -49,11 +52,29 @@ class Service(BaseModel):
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.00"))],
         verbose_name=_("Monthly Budget ($)"),
+        null=True,
+        blank=True,
     )
 
     # Contract start date for this service
     contract_start_date = models.DateField(
         verbose_name=_("Contract Start Date"), null=True, blank=True
+    )
+
+    # Schedule dates for this service
+    schedule = ArrayField(
+        models.DateField(),
+        verbose_name=_("Schedule Dates"),
+        null=True,
+        blank=True,
+        help_text=_("Dates when this service is scheduled to be performed"),
+    )
+
+    # Whether this service is recurrent
+    recurrent = models.BooleanField(
+        verbose_name=_("Recurrent"),
+        default=False,
+        help_text=_("Whether this service is performed on a recurring basis"),
     )
 
     # Hours will be calculated based on completed shifts

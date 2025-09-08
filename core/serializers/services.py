@@ -27,6 +27,8 @@ class ServiceSerializer(serializers.ModelSerializer):
             "rate",
             "monthly_budget",
             "contract_start_date",
+            "schedule",
+            "recurrent",
             "total_hours",
             "created_at",
             "updated_at",
@@ -63,5 +65,8 @@ class ServiceUpdateSerializer(serializers.ModelSerializer):
             "assigned_property",
             "rate",
             "monthly_budget",
+            "contract_start_date",
+            "schedule",
+            "recurrent",
             "is_active",
         ]
