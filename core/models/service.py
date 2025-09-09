@@ -70,6 +70,20 @@ class Service(BaseModel):
         help_text=_("Dates when this service is scheduled to be performed"),
     )
 
+    # Start and end time for this service
+    start_time = models.TimeField(
+        verbose_name=_("Start Time"),
+        null=True,
+        blank=True,
+        help_text=_("Time when this service starts each day"),
+    )
+    end_time = models.TimeField(
+        verbose_name=_("End Time"),
+        null=True,
+        blank=True,
+        help_text=_("Time when this service ends each day"),
+    )
+
     # Whether this service is recurrent
     recurrent = models.BooleanField(
         verbose_name=_("Recurrent"),
