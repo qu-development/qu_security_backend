@@ -2,6 +2,8 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
+from core.models import Guard
+
 from .models import ApiKey
 
 
@@ -34,3 +36,47 @@ class ApiKeyAuthentication(BaseAuthentication):
         header in a 401 Unauthorized response.
         """
         return "Api-Key"
+
+
+class MobileGuardAuthentication(BaseAuthentication):
+    """
+    Custom authentication class for mobile app using X-API-KEY and X-Guard-ID headers.
+
+    This authenticates guards from the mobile app using:
+    - X-API-KEY: A server key for API access validation
+    - X-Guard-ID: The guard's ID to identify the specific guard
+    """
+
+    def authenticate(self, request):
+        """
+        Authenticate the request using X-API-KEY and X-Guard-ID headers.
+        """
+        api_key = request.headers.get("X-API-KEY")
+        guard_id = request.headers.get("X-Guard-ID")
+
+        if not api_key or not guard_id:
+            # Both headers are required for mobile authentication
+            return None
+
+        try:
+            ApiKey.objects.get(key=api_key, is_active=True)
+        except ApiKey.DoesNotExist:
+            raise AuthenticationFailed(_("Invalid or inactive API key."))
+
+        # Validate the guard exists and is active
+        try:
+            guard = Guard.objects.select_related("user").get(
+                id=guard_id, user__is_active=True
+            )
+        except Guard.DoesNotExist:
+            raise AuthenticationFailed(_("Invalid guard ID or guard is inactive."))
+
+        # Return the guard's user and the guard object as authentication
+        return (guard.user, guard)
+
+    def authenticate_header(self, request):
+        """
+        Return a string to be used as the value of the `WWW-Authenticate`
+        header in a 401 Unauthorized response.
+        """
+        return "Mobile-Guard-Auth"
