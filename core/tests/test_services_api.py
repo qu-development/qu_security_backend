@@ -88,6 +88,10 @@ class TestServiceModel:
             timezone.now().date(),
             timezone.now().date() + timezone.timedelta(days=7),
         ]
+        start_time = timezone.now().time().replace(microsecond=0)
+        end_time = (
+            (timezone.now() + timezone.timedelta(hours=8)).time().replace(microsecond=0)
+        )
         service = Service.objects.create(
             name="Security Service",
             description="24/7 security monitoring",
@@ -98,6 +102,8 @@ class TestServiceModel:
             contract_start_date=contract_date,
             schedule=schedule_dates,
             recurrent=True,
+            start_time=start_time,
+            end_time=end_time,
         )
 
         assert service.name == "Security Service"
@@ -109,6 +115,8 @@ class TestServiceModel:
         assert service.contract_start_date == contract_date
         assert service.schedule == schedule_dates
         assert service.recurrent is True
+        assert service.start_time == start_time
+        assert service.end_time == end_time
         assert service.is_active is True
 
     def test_service_without_guard(self, property_instance):
@@ -223,6 +231,11 @@ class TestServiceAPI:
                 (timezone.now().date() + timezone.timedelta(days=7)).isoformat(),
             ],
             "recurrent": True,
+            "start_time": timezone.now().time().replace(microsecond=0).isoformat(),
+            "end_time": (timezone.now() + timezone.timedelta(hours=8))
+            .time()
+            .replace(microsecond=0)
+            .isoformat(),
         }
         response = api_client.post(url, data)
 
@@ -275,6 +288,11 @@ class TestServiceAPI:
             "contract_start_date": timezone.now().date().isoformat(),
             "schedule": [timezone.now().date().isoformat()],
             "recurrent": False,
+            "start_time": timezone.now().time().replace(microsecond=0).isoformat(),
+            "end_time": (timezone.now() + timezone.timedelta(hours=4))
+            .time()
+            .replace(microsecond=0)
+            .isoformat(),
         }
         response = api_client.patch(url, data)
 
@@ -331,6 +349,8 @@ class TestServiceAPI:
             service=service_instance,
             guard=service_instance.guard,
             property=service_instance.assigned_property,
+            planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+            planned_end_time=timezone.now() + timezone.timedelta(hours=9),
             start_time=timezone.now(),
             end_time=timezone.now() + timezone.timedelta(hours=8),
         )

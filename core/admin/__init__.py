@@ -14,11 +14,12 @@ from core.models import (
 from .guard import GuardAdmin
 from .property import PropertyAdmin
 from .service import ServiceAdmin
+from .shift import ShiftAdmin
 
 admin.site.register(Guard, GuardAdmin)
 admin.site.register(Client)
 admin.site.register(Property, PropertyAdmin)
-admin.site.register(Shift)
+admin.site.register(Shift, ShiftAdmin)
 admin.site.register(Expense)
 admin.site.register(PropertyTypeOfService)
 admin.site.register(Service, ServiceAdmin)

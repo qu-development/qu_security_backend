@@ -29,6 +29,8 @@ class ServiceSerializer(serializers.ModelSerializer):
             "contract_start_date",
             "schedule",
             "recurrent",
+            "start_time",
+            "end_time",
             "total_hours",
             "created_at",
             "updated_at",
@@ -68,5 +70,7 @@ class ServiceUpdateSerializer(serializers.ModelSerializer):
             "contract_start_date",
             "schedule",
             "recurrent",
+            "start_time",
+            "end_time",
             "is_active",
         ]

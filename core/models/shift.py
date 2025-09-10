@@ -32,8 +32,24 @@ class Shift(BaseModel):
         blank=True,
     )
     is_armed = models.BooleanField(default=False, verbose_name=_("Is Armed"))
-    start_time = models.DateTimeField(verbose_name=_("Start Time"))
-    end_time = models.DateTimeField(verbose_name=_("End Time"))
+    weapon = models.ForeignKey(
+        "Weapon",
+        on_delete=models.SET_NULL,
+        related_name="shifts",
+        verbose_name=_("Weapon"),
+        null=True,
+        blank=True,
+    )
+    planned_start_time = models.DateTimeField(
+        verbose_name=_("Planned Start Time"), null=True, blank=True
+    )
+    planned_end_time = models.DateTimeField(
+        verbose_name=_("Planned End Time"), null=True, blank=True
+    )
+    start_time = models.DateTimeField(
+        verbose_name=_("Start Time"), null=True, blank=True
+    )
+    end_time = models.DateTimeField(verbose_name=_("End Time"), null=True, blank=True)
     hours_worked = models.PositiveIntegerField(
         default=0, validators=[MinValueValidator(0)], verbose_name=_("Hours Worked")
     )

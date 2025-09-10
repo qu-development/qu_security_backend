@@ -21,11 +21,20 @@ def test_shift_create_by_any_authenticated_user_succeeds():
     api = APIClient()
     api.force_authenticate(user=acting_user)
 
+    # Create a weapon for the guard
+    weapon = baker.make(
+        Weapon, guard=guard, serial_number="TEST123", model="Test Model"
+    )
+
     payload = {
         "guard": guard.id,
         "property": prop.id,
+        "planned_start_time": "2025-01-01T09:00:00Z",
+        "planned_end_time": "2025-01-01T13:00:00Z",
         "start_time": "2025-01-01T10:00:00Z",
         "end_time": "2025-01-01T12:00:00Z",
+        "is_armed": True,
+        "weapon": weapon.id,
     }
 
     # Act
@@ -52,11 +61,20 @@ def test_shift_create_by_guard_for_self_succeeds():
     api = APIClient()
     api.force_authenticate(user=guard_user)
 
+    # Create a weapon for the guard
+    weapon = baker.make(
+        Weapon, guard=guard, serial_number="GUARD456", model="Guard Model"
+    )
+
     payload = {
         "guard": guard.id,
         "property": prop.id,
+        "planned_start_time": "2025-02-01T07:00:00Z",
+        "planned_end_time": "2025-02-01T17:00:00Z",
         "start_time": "2025-02-01T08:00:00Z",
         "end_time": "2025-02-01T16:00:00Z",
+        "is_armed": True,
+        "weapon": weapon.id,
     }
 
     # Act
@@ -82,11 +100,20 @@ def test_shift_create_unauthenticated_returns_401():
 
     api = APIClient()  # no authentication
 
+    # Create a weapon for the guard
+    weapon = baker.make(
+        Weapon, guard=guard, serial_number="UNAUTH789", model="Unauth Model"
+    )
+
     payload = {
         "guard": guard.id,
         "property": prop.id,
+        "planned_start_time": "2025-03-01T08:00:00Z",
+        "planned_end_time": "2025-03-01T14:00:00Z",
         "start_time": "2025-03-01T09:00:00Z",
         "end_time": "2025-03-01T13:00:00Z",
+        "is_armed": True,
+        "weapon": weapon.id,
     }
 
     # Act
@@ -108,11 +135,18 @@ def test_shift_with_armed_guard_returns_weapon_details():
     guard = baker.make(Guard, user=guard_user, is_armed=True)
     baker.make(Weapon, guard=guard, serial_number="ABC123", model="Glock 17")
 
-    # Create a shift for the armed guard
+    # Create a weapon for the guard (use the one already created)
+    weapon = Weapon.objects.get(guard=guard, serial_number="ABC123")
+
+    # Create a shift for the armed guard with the weapon assigned
     shift = baker.make(
         "Shift",
         guard=guard,
         property=prop,
+        is_armed=True,
+        weapon=weapon,
+        planned_start_time="2025-04-01T08:00:00Z",
+        planned_end_time="2025-04-01T18:00:00Z",
         start_time="2025-04-01T09:00:00Z",
         end_time="2025-04-01T17:00:00Z",
     )
@@ -148,6 +182,10 @@ def test_shift_with_unarmed_guard_returns_no_weapon_details():
         "Shift",
         guard=guard,
         property=prop,
+        is_armed=False,
+        weapon=None,
+        planned_start_time="2025-05-01T08:00:00Z",
+        planned_end_time="2025-05-01T18:00:00Z",
         start_time="2025-05-01T09:00:00Z",
         end_time="2025-05-01T17:00:00Z",
     )
@@ -164,3 +202,48 @@ def test_shift_with_unarmed_guard_returns_no_weapon_details():
     data = resp.json()
     assert "weapon_details" in data
     assert data["weapon_details"] is None
+
+
+@pytest.mark.django_db
+def test_shift_with_specific_weapon_returns_correct_weapon_details():
+    # Arrange: create a property, an armed guard with multiple weapons, and a shift with a specific weapon
+    owner_user = baker.make(User)
+    owner_client = baker.make(Client, user=owner_user)
+    prop = baker.make(Property, owner=owner_client, address="Site F")
+
+    guard_user = baker.make(User)
+    guard = baker.make(Guard, user=guard_user, is_armed=True)
+
+    # Create multiple weapons for the guard
+    baker.make(Weapon, guard=guard, serial_number="XYZ789", model="Beretta 92")
+    weapon2 = baker.make(
+        Weapon, guard=guard, serial_number="DEF456", model="Sig Sauer P320"
+    )
+
+    # Create a shift with a specific weapon assigned
+    shift = baker.make(
+        "Shift",
+        guard=guard,
+        property=prop,
+        is_armed=True,
+        weapon=weapon2,  # Assign the second weapon specifically
+        planned_start_time="2025-06-01T08:00:00Z",
+        planned_end_time="2025-06-01T18:00:00Z",
+        start_time="2025-06-01T09:00:00Z",
+        end_time="2025-06-01T17:00:00Z",
+    )
+
+    api = APIClient()
+    api.force_authenticate(user=guard_user)
+
+    # Act
+    url = reverse("core:shift-detail", kwargs={"pk": shift.id})
+    resp = api.get(url)
+
+    # Assert
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "weapon_details" in data
+    assert data["weapon_details"] is not None
+    assert data["weapon_details"]["serial_number"] == "DEF456"
+    assert data["weapon_details"]["model"] == "Sig Sauer P320"
