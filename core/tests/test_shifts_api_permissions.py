@@ -25,6 +25,8 @@ def test_shift_list_guard_sees_only_own_shifts():
         Shift,
         guard=guard_1,
         property=prop,
+        planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+        planned_end_time=timezone.now() + timezone.timedelta(hours=5),
         start_time=timezone.now(),
         end_time=timezone.now() + timezone.timedelta(hours=4),
     )
@@ -32,6 +34,8 @@ def test_shift_list_guard_sees_only_own_shifts():
         Shift,
         guard=guard_2,
         property=prop,
+        planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+        planned_end_time=timezone.now() + timezone.timedelta(hours=3),
         start_time=timezone.now(),
         end_time=timezone.now() + timezone.timedelta(hours=2),
     )
@@ -71,6 +75,8 @@ def test_shift_list_client_sees_only_shifts_on_their_properties():
         Shift,
         guard=guard,
         property=prop_1,
+        planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+        planned_end_time=timezone.now() + timezone.timedelta(hours=7),
         start_time=timezone.now(),
         end_time=timezone.now() + timezone.timedelta(hours=6),
     )
@@ -78,6 +84,8 @@ def test_shift_list_client_sees_only_shifts_on_their_properties():
         Shift,
         guard=guard,
         property=prop_2,
+        planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+        planned_end_time=timezone.now() + timezone.timedelta(hours=6),
         start_time=timezone.now(),
         end_time=timezone.now() + timezone.timedelta(hours=5),
     )
@@ -116,6 +124,8 @@ def test_shift_update_assigned_guard_ok_and_other_guard_forbidden():
         Shift,
         guard=guard_1,
         property=prop,
+        planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+        planned_end_time=timezone.now() + timezone.timedelta(hours=9),
         start_time=timezone.now(),
         end_time=timezone.now() + timezone.timedelta(hours=8),
     )
@@ -153,6 +163,8 @@ def test_shift_update_manager_ok():
         Shift,
         guard=guard,
         property=prop,
+        planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+        planned_end_time=timezone.now() + timezone.timedelta(hours=9),
         start_time=timezone.now(),
         end_time=timezone.now() + timezone.timedelta(hours=8),
     )
@@ -189,6 +201,8 @@ def test_shift_soft_delete_and_restore():
         Shift,
         guard=guard,
         property=prop,
+        planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+        planned_end_time=timezone.now() + timezone.timedelta(hours=9),
         start_time=timezone.now(),
         end_time=timezone.now() + timezone.timedelta(hours=4),
     )
@@ -233,6 +247,8 @@ def test_shift_by_guard_and_by_property_filters():
         Shift,
         guard=guard,
         property=prop,
+        planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+        planned_end_time=timezone.now() + timezone.timedelta(hours=3),
         start_time=timezone.now(),
         end_time=timezone.now() + timezone.timedelta(hours=2),
     )
@@ -269,6 +285,8 @@ def test_shift_validation_end_time_after_start_time():
     payload = {
         "guard": guard.id,
         "property": prop.id,
+        "planned_start_time": "2025-01-01T08:00:00Z",
+        "planned_end_time": "2025-01-01T12:00:00Z",
         "start_time": "2025-01-01T10:00:00Z",
         "end_time": "2025-01-01T09:00:00Z",  # invalid: end before start
     }

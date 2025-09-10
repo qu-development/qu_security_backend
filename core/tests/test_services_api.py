@@ -349,6 +349,8 @@ class TestServiceAPI:
             service=service_instance,
             guard=service_instance.guard,
             property=service_instance.assigned_property,
+            planned_start_time=timezone.now() - timezone.timedelta(hours=1),
+            planned_end_time=timezone.now() + timezone.timedelta(hours=9),
             start_time=timezone.now(),
             end_time=timezone.now() + timezone.timedelta(hours=8),
         )

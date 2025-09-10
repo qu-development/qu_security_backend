@@ -29,9 +29,33 @@ def test_guard_properties_shifts_endpoint_returns_correct_data():
     service = baker.make(Service, name="Security Service", rate=25.00)
 
     # Create shifts for the guard at different properties
-    baker.make(Shift, guard=guard, property=property1, service=service, hours_worked=8)
-    baker.make(Shift, guard=guard, property=property1, service=service, hours_worked=6)
-    baker.make(Shift, guard=guard, property=property2, service=service, hours_worked=10)
+    baker.make(
+        Shift,
+        guard=guard,
+        property=property1,
+        service=service,
+        hours_worked=8,
+        planned_start_time="2025-01-01T08:00:00Z",
+        planned_end_time="2025-01-01T16:00:00Z",
+    )
+    baker.make(
+        Shift,
+        guard=guard,
+        property=property1,
+        service=service,
+        hours_worked=6,
+        planned_start_time="2025-01-02T09:00:00Z",
+        planned_end_time="2025-01-02T15:00:00Z",
+    )
+    baker.make(
+        Shift,
+        guard=guard,
+        property=property2,
+        service=service,
+        hours_worked=10,
+        planned_start_time="2025-01-03T07:00:00Z",
+        planned_end_time="2025-01-03T17:00:00Z",
+    )
 
     # Create admin user for authentication
     admin_user = baker.make(User, is_superuser=True)
@@ -130,13 +154,31 @@ def test_property_guards_shifts_endpoint_returns_correct_data():
 
     # Create shifts for different guards at the same property
     baker.make(
-        Shift, guard=guard1, property=property_obj, service=service, hours_worked=8
+        Shift,
+        guard=guard1,
+        property=property_obj,
+        service=service,
+        hours_worked=8,
+        planned_start_time="2025-02-01T08:00:00Z",
+        planned_end_time="2025-02-01T16:00:00Z",
     )
     baker.make(
-        Shift, guard=guard1, property=property_obj, service=service, hours_worked=6
+        Shift,
+        guard=guard1,
+        property=property_obj,
+        service=service,
+        hours_worked=6,
+        planned_start_time="2025-02-02T09:00:00Z",
+        planned_end_time="2025-02-02T15:00:00Z",
     )
     baker.make(
-        Shift, guard=guard2, property=property_obj, service=service, hours_worked=12
+        Shift,
+        guard=guard2,
+        property=property_obj,
+        service=service,
+        hours_worked=12,
+        planned_start_time="2025-02-03T08:00:00Z",
+        planned_end_time="2025-02-03T20:00:00Z",
     )
 
     # Create admin user for authentication
