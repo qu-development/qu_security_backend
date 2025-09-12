@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from common.models import BaseModel
 from core.models import Guard
+from core.storages import MediaStorage
 
 
 class ApiKey(BaseModel):
@@ -64,6 +65,7 @@ class GuardReport(BaseModel):
         _("file"),
         upload_to="guard_reports/%Y/%m/%d/",
         help_text=_("Attached file for this report."),
+        storage=MediaStorage() if settings.USE_S3 else None,
     )
     note = models.TextField(_("note"), blank=True)
     report_datetime = models.DateTimeField(
