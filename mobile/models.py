@@ -1,5 +1,6 @@
 import secrets
 
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
@@ -94,3 +95,28 @@ class GuardReport(BaseModel):
 
     def __str__(self):
         return f"{self.guard} @ {self.report_datetime:%Y-%m-%d %H:%M:%S}"
+
+    def get_file_url(self, expiration=3600):
+        """
+        Get a signed URL for accessing the uploaded file.
+
+        Args:
+            expiration: URL expiration time in seconds (default: 1 hour)
+
+        Returns:
+            Signed URL string or the file URL if not using S3
+        """
+        if not self.file:
+            return None
+
+        # Check if we're using S3 storage
+        if settings.USE_S3:
+            # Import and use MediaStorage for signed URLs
+            from core.storages import MediaStorage
+
+            storage = MediaStorage()
+            # Use the file name as-is, storage will handle the path
+            return storage.get_signed_url(self.file.name, expiration)
+        else:
+            # Fallback to regular file URL for local storage
+            return self.file.url
