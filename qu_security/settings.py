@@ -373,3 +373,54 @@ USE_ASYNC_TASKS = os.environ.get("USE_ASYNC_TASKS", "False").lower() == "true"
 AWS_SQS_QUEUE_URL = os.environ.get("AWS_SQS_QUEUE_URL")
 AWS_SQS_REGION = os.environ.get("AWS_SQS_REGION", "us-east-1")
 AWS_SQS_DLQ_URL = os.environ.get("AWS_SQS_DLQ_URL")  # Dead Letter Queue
+
+# Cache Configuration
+# Valkey Cache Configuration for AWS ElastiCache
+VALKEY_ENDPOINT = os.environ.get(
+    "VALKEY_ENDPOINT", "qu-security-main-inu7dr.serverless.use2.cache.amazonaws.com"
+)
+VALKEY_PORT = int(os.environ.get("VALKEY_PORT", "6379"))
+VALKEY_SSL = os.environ.get("VALKEY_SSL", "True").lower() == "true"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"valkey://{VALKEY_ENDPOINT}:{VALKEY_PORT}/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "ssl_cert_reqs": None,
+            },
+            "SSL": VALKEY_SSL,
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+        },
+        "KEY_PREFIX": "qu_security",
+        "TIMEOUT": 300,  # Default cache timeout in seconds
+    },
+    "session": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"valkey://{VALKEY_ENDPOINT}:{VALKEY_PORT}/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "ssl_cert_reqs": None,
+            },
+            "SSL": VALKEY_SSL,
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+        },
+        "KEY_PREFIX": "qu_security_session",
+        "TIMEOUT": 3600,  # 1 hour for sessions
+    },
+}
+
+# Use Valkey for sessions
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "session"
+
+# Cache time to live for different cache types
+CACHE_TTL = {
+    "short": 60,  # 1 minute
+    "medium": 300,  # 5 minutes
+    "long": 3600,  # 1 hour
+    "very_long": 86400,  # 24 hours
+}

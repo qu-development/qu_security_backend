@@ -95,6 +95,39 @@ class ShiftViewSet(
         return Response({"error": "property_id parameter is required"}, status=400)
 
     @swagger_auto_schema(
+        operation_description="Get next scheduled shift for a guard",
+        responses={200: ShiftSerializer, 404: "No scheduled shift found"},
+    )
+    @action(detail=False, methods=["get"])
+    def next_shift(self, request):
+        """Get the next scheduled shift for a guard"""
+        guard_id = request.query_params.get("guard_id")
+        if not guard_id:
+            return Response({"error": "guard_id parameter is required"}, status=400)
+
+        from django.utils import timezone
+
+        # Get the next scheduled shift for the guard
+        next_shift = (
+            self.get_queryset()
+            .filter(
+                guard_id=guard_id,
+                status=Shift.Status.SCHEDULED,
+                planned_start_time__gt=timezone.now(),
+            )
+            .order_by("planned_start_time")
+            .first()
+        )
+
+        if not next_shift:
+            return Response(
+                {"error": "No scheduled shifts found for this guard"}, status=404
+            )
+
+        serializer = self.get_serializer(next_shift)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
         operation_description="Get shifts by service",
         responses={200: ShiftSerializer(many=True)},
     )
