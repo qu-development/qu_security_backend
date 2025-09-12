@@ -1,5 +1,6 @@
 import logging
 
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -67,7 +68,12 @@ class GuardReportViewSet(viewsets.ModelViewSet):
         Example: GET /api/mobile/guard-reports/by-guard/123/
         Supports pagination, search and ordering.
         """
-        qs = self.filter_queryset(self.get_queryset().filter(guard_id=guard_id))
+        # filter by created today only
+        qs = self.filter_queryset(
+            self.get_queryset().filter(
+                guard_id=guard_id, created_at__date=timezone.now().date()
+            )
+        )
         page = self.paginate_queryset(qs)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
