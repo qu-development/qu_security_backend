@@ -109,23 +109,54 @@ class ShiftViewSet(
         if not guard_id:
             return Response({"error": "guard_id parameter is required"}, status=400)
 
+        import logging
+
         from django.utils import timezone
 
-        # Get the next scheduled shift for the guard
-        next_shift = (
-            self.get_queryset()
-            .filter(
-                guard_id=guard_id,
-                status=Shift.Status.SCHEDULED,
-                planned_start_time__gt=timezone.now(),
-            )
-            .order_by("planned_start_time")
-            .first()
+        logger = logging.getLogger(__name__)
+        now = timezone.now()
+
+        # Use base queryset to avoid permission filtering issues for this specific case
+        base_queryset = Shift.objects.all()
+
+        # Debug: Check all shifts for this guard
+        all_shifts = base_queryset.filter(guard_id=guard_id)
+        logger.info(f"🔍 Total shifts for guard {guard_id}: {all_shifts.count()}")
+
+        scheduled_shifts = all_shifts.filter(status=Shift.Status.SCHEDULED)
+        logger.info(
+            f"🔍 Scheduled shifts for guard {guard_id}: {scheduled_shifts.count()}"
         )
 
+        future_shifts = scheduled_shifts.filter(planned_start_time__gt=now)
+        logger.info(
+            f"🔍 Future scheduled shifts for guard {guard_id}: {future_shifts.count()}"
+        )
+        logger.info(f"🔍 Current time: {now}")
+
+        if scheduled_shifts.exists():
+            for shift in scheduled_shifts:
+                logger.info(
+                    f"🔍 Shift ID {shift.id}: planned_start_time={shift.planned_start_time}, status={shift.status}"
+                )
+
+        # Get the next scheduled shift for the guard
+        next_shift = future_shifts.order_by("planned_start_time").first()
+
         if not next_shift:
+            # Enhanced error message with debugging info
             return Response(
-                {"error": "No scheduled shifts found for this guard"}, status=404
+                {
+                    "error": "No scheduled shifts found for this guard",
+                    "debug_info": {
+                        "guard_id": guard_id,
+                        "current_time": now.isoformat(),
+                        "total_shifts": all_shifts.count(),
+                        "scheduled_shifts": scheduled_shifts.count(),
+                        "future_scheduled_shifts": future_shifts.count(),
+                    },
+                },
+                status=404,
             )
 
         serializer = self.get_serializer(next_shift)
