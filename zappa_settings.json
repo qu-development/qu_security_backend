@@ -6,7 +6,7 @@
         "runtime": "python3.11",
         "s3_bucket": "qu-security-zappa-deployments",
         "keep_warm": false,
-        "timeout_seconds": 30,
+        "timeout_seconds": 90,
         "memory_size": 512,
         "role_arn": "arn:aws:iam::221082186476:role/qu-security-lambda-role",
         "django_settings": "qu_security.settings",
@@ -26,7 +26,7 @@
             "USE_ASYNC_TASKS": "True",
             "AWS_SQS_QUEUE_URL": "https://us-east-2.queue.amazonaws.com/221082186476/qu-security-tasks-dev",
             "AWS_SQS_REGION": "us-east-2",
-            "AWS_SQS_DLQ_URL": "https://us-east-2.queue.amazonaws.com/221082186476/qu-security-tasks-dev-dlq",,,
+            "AWS_SQS_DLQ_URL": "https://us-east-2.queue.amazonaws.com/221082186476/qu-security-tasks-dev-dlq",
             "VALKEY_ENDPOINT": "qu-security-main-inu7dr.serverless.use2.cache.amazonaws.com",
             "VALKEY_PORT": "6379",
             "VALKEY_SSL": "True"
@@ -34,7 +34,7 @@
         },
         "vpc_config": {
             "SubnetIds": ["subnet-01b7baf8b170c3d82", "subnet-07119d6325442c984", "subnet-0ae197b27f762cf16"],
-            "SecurityGroupIds": ["sg-03913df610c5c5f37"]
+            "SecurityGroupIds": ["sg-011532c7d3a55b169"]
         },
         "exclude": [
             "*.git*",
@@ -59,7 +59,7 @@
         "runtime": "python3.11",
         "s3_bucket": "qu-security-zappa-deployments-prod",
         "keep_warm": true,
-        "timeout_seconds": 30,
+        "timeout_seconds": 90,
         "memory_size": 1024,
         "role_arn": "arn:aws:iam::221082186476:role/qu-security-lambda-role",
         "django_settings": "qu_security.settings",
@@ -86,7 +86,7 @@
         },
         "vpc_config": {
             "SubnetIds": ["subnet-01b7baf8b170c3d82", "subnet-07119d6325442c984", "subnet-0ae197b27f762cf16"],
-            "SecurityGroupIds": ["sg-03913df610c5c5f37"]
+            "SecurityGroupIds": ["sg-011532c7d3a55b169"]
         },
         "exclude": [
             "*.git*",

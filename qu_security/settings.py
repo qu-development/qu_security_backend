@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import logging
 import os
+import socket
+import ssl
 from datetime import timedelta
 from pathlib import Path
 
@@ -382,36 +384,83 @@ VALKEY_ENDPOINT = os.environ.get(
 VALKEY_PORT = int(os.environ.get("VALKEY_PORT", "6379"))
 VALKEY_SSL = os.environ.get("VALKEY_SSL", "True").lower() == "true"
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"valkey://{VALKEY_ENDPOINT}:{VALKEY_PORT}/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "ssl_cert_reqs": None,
+# Temporarily disable Valkey cache due to VPC connectivity issues
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+#         "LOCATION": "unique-snowflake",
+#     },
+#     "session": {
+#         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+#         "LOCATION": "unique-snowflake-sessions",
+#     },
+# }
+
+# Original Valkey configuration (commented out for VPC troubleshooting)
+scheme = "rediss" if VALKEY_SSL else "redis"
+
+
+def check_valkey_connection(host, port, use_ssl):
+    """Quick connectivity check to Valkey before Django starts."""
+    try:
+        sock = socket.create_connection((host, port), timeout=2)
+        if use_ssl:
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            sock = context.wrap_socket(sock, server_hostname=host)
+        sock.close()
+        logger.info(f"✅ Valkey reachable at {host}:{port} (SSL={use_ssl})")
+        return True
+    except Exception as e:
+        logger.warning(f"⚠️ Valkey not reachable at {host}:{port} — {e}")
+        return False
+
+
+if check_valkey_connection(VALKEY_ENDPOINT, VALKEY_PORT, VALKEY_SSL):
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}/1",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": {
+                    "ssl_cert_reqs": None,
+                },
+                "SSL": VALKEY_SSL,
+                "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
             },
-            "SSL": VALKEY_SSL,
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+            "KEY_PREFIX": "qu_security",
+            "TIMEOUT": 300,
         },
-        "KEY_PREFIX": "qu_security",
-        "TIMEOUT": 300,  # Default cache timeout in seconds
-    },
-    "session": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"valkey://{VALKEY_ENDPOINT}:{VALKEY_PORT}/2",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "ssl_cert_reqs": None,
+        "session": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}/2",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": {
+                    "ssl_cert_reqs": None,
+                },
+                "SSL": VALKEY_SSL,
+                "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
             },
-            "SSL": VALKEY_SSL,
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+            "KEY_PREFIX": "qu_security_session",
+            "TIMEOUT": 3600,
         },
-        "KEY_PREFIX": "qu_security_session",
-        "TIMEOUT": 3600,  # 1 hour for sessions
-    },
-}
+    }
+else:
+    # Fallback to in-memory cache if Valkey is unreachable
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-default",
+        },
+        "session": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "unique-session",
+        },
+    }
+    logger.warning("🚨 Using LocMemCache fallback — Valkey unavailable.")
 
 # Use Valkey for sessions
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"

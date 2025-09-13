@@ -63,6 +63,10 @@ class WeaponViewSet(
 
     def get_queryset(self):
         """Return the queryset for this view."""
+        # Bypass permission filtering for swagger schema generation
+        if getattr(self, "swagger_fake_view", False):
+            return Weapon.objects.none()
+
         queryset = super().get_queryset()
         return PermissionManager.filter_queryset_by_permissions(
             self.request.user, queryset, "weapon"

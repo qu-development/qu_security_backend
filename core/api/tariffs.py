@@ -55,6 +55,10 @@ class GuardPropertyTariffViewSet(
 
     def get_queryset(self):
         """Filter queryset based on user role and ownership"""
+        # Bypass permission filtering for swagger schema generation
+        if getattr(self, "swagger_fake_view", False):
+            return GuardPropertyTariff.objects.none()
+
         qs = super().get_queryset()
         user = self.request.user
 
