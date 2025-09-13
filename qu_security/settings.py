@@ -421,7 +421,7 @@ if check_valkey_connection(VALKEY_ENDPOINT, VALKEY_PORT, VALKEY_SSL):
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}/1",
+            "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}",
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
                 "CONNECTION_POOL_KWARGS": {
@@ -435,7 +435,7 @@ if check_valkey_connection(VALKEY_ENDPOINT, VALKEY_PORT, VALKEY_SSL):
         },
         "session": {
             "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}/2",
+            "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}",
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
                 "CONNECTION_POOL_KWARGS": {
