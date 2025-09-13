@@ -13,5 +13,8 @@ class GeneralSettingsSerializer(serializers.ModelSerializer):
             "postgres_status",
             "valkey_status",
             "valkey_diagnostics",
+            "cache_test_info",
+            "cache_visit_count",
+            "cache_last_access",
         ]
         read_only_fields = fields

@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.core.cache import caches
+from django.core.cache import cache, caches
 from django.db import connection, models
 from django.utils.translation import gettext_lazy as _
 from solo.models import SingletonModel
@@ -92,6 +92,43 @@ class GeneralSettings(SingletonModel, BaseModel):
             )
         except Exception as e:
             return f"Error getting diagnostics: {e}"
+
+    @property
+    def cache_test_info(self):
+        """Display cache test information to verify Valkey is working."""
+        try:
+            test_message = cache.get("admin_test_message")
+            if test_message:
+                return f"✅ {test_message}"
+            else:
+                return "❌ No cache test data found - Cache may not be working"
+        except Exception as e:
+            return f"❌ Cache test failed: {e}"
+
+    @property
+    def cache_visit_count(self):
+        """Display the number of admin visits stored in cache."""
+        try:
+            count = cache.get("admin_visit_count", 0)
+            return f"Admin visits: {count}"
+        except Exception as e:
+            return f"Error getting visit count: {e}"
+
+    @property
+    def cache_last_access(self):
+        """Display last admin access information from cache."""
+        try:
+            last_access = cache.get("admin_last_access")
+            if last_access:
+                return (
+                    f"Last access: {last_access['timestamp']} | "
+                    f"User: {last_access['user']} | "
+                    f"IP: {last_access['ip']}"
+                )
+            else:
+                return "No access data in cache"
+        except Exception as e:
+            return f"Error getting access data: {e}"
 
     class Meta:
         verbose_name = _("General Settings")
