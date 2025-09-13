@@ -69,6 +69,10 @@ class ClientViewSet(
 
     def get_queryset(self):
         """Filter queryset based on user permissions"""
+        # Bypass permission filtering for swagger schema generation
+        if getattr(self, "swagger_fake_view", False):
+            return Client.objects.none()
+
         queryset = super().get_queryset()
         # Allow any authenticated user to list/retrieve clients (tests expect this)
         # Restrictive filtering is only applied for mutating actions, which are

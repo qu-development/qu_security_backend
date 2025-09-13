@@ -88,6 +88,10 @@ class PropertyViewSet(
         - Expands access for detail actions if user has explicit ResourcePermission
           on specific properties (read/update/delete).
         """
+        # Bypass permission filtering for swagger schema generation
+        if getattr(self, "swagger_fake_view", False):
+            return Property.objects.none()
+
         base_qs = super().get_queryset()
         qs = PermissionManager.filter_queryset_by_permissions(
             self.request.user, base_qs, "property"

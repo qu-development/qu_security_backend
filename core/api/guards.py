@@ -73,6 +73,10 @@ class GuardViewSet(
 
     def get_queryset(self):
         """Filter queryset based on user permissions"""
+        # Bypass permission filtering for swagger schema generation
+        if getattr(self, "swagger_fake_view", False):
+            return Guard.objects.none()
+
         queryset = super().get_queryset()
         return PermissionManager.filter_queryset_by_permissions(
             self.request.user, queryset, "guard"
