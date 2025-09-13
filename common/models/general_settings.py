@@ -101,54 +101,107 @@ class GeneralSettings(SingletonModel, BaseModel):
         """Display all keys and values in the Valkey cache."""
         try:
             cache = caches["default"]
+            cache_data = {}
 
-            # Try to get all keys using django-redis specific method
-            if hasattr(cache, "get_client"):
-                client = cache.get_client()
-                if hasattr(client, "keys"):
-                    keys = client.keys("*")
-                    if not keys:
-                        return format_html("<p><em>No keys found in cache</em></p>")
+            # Try multiple approaches to get cache keys
+            try:
+                # Method 1: Try django-redis specific approach
+                if hasattr(cache, "get_client"):
+                    client = cache.get_client()
+                    if hasattr(client, "keys"):
+                        keys = client.keys("*")
+                        if keys:
+                            for key in keys:
+                                # Decode key if it's bytes
+                                if isinstance(key, bytes):
+                                    key = key.decode("utf-8")
 
-                    cache_data = {}
-                    for key in keys:
-                        # Decode key if it's bytes
-                        if isinstance(key, bytes):
-                            key = key.decode("utf-8")
+                                try:
+                                    value = cache.get(key)
+                                    # Format the value for display
+                                    if isinstance(value, dict | list | tuple):
+                                        cache_data[key] = json.dumps(value, indent=2)
+                                    else:
+                                        cache_data[key] = str(value)
+                                except Exception as e:
+                                    cache_data[key] = f"Error retrieving value: {e}"
+                    else:
+                        # Method 2: Try direct Redis connection
+                        import redis
 
-                        try:
-                            value = cache.get(key)
-                            # Format the value for display
-                            if isinstance(value, dict | list | tuple):
-                                cache_data[key] = json.dumps(value, indent=2)
-                            else:
-                                cache_data[key] = str(value)
-                        except Exception as e:
-                            cache_data[key] = f"Error retrieving value: {e}"
+                        redis_client = client.get_connection_pool().connection_kwargs
+                        r = redis.Redis(**redis_client)
+                        keys = r.keys("*")
+                        if keys:
+                            for key in keys:
+                                if isinstance(key, bytes):
+                                    key = key.decode("utf-8")
 
-                    # Format for HTML display
-                    html_content = "<div style='max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px;'>"
-                    html_content += (
-                        f"<p><strong>Total Keys:</strong> {len(cache_data)}</p>"
-                    )
-
-                    for key, value in cache_data.items():
-                        html_content += "<div style='margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #007cba;'>"
-                        html_content += (
-                            f"<strong style='color: #007cba;'>Key:</strong> {key}<br>"
-                        )
-                        html_content += (
-                            "<strong style='color: #28a745;'>Value:</strong><br>"
-                        )
-                        html_content += f"<pre style='white-space: pre-wrap; word-wrap: break-word; margin: 5px 0; padding: 5px; background-color: #ffffff; border: 1px solid #dee2e6;'>{value}</pre>"
-                        html_content += "</div>"
-
-                    html_content += "</div>"
-                    return format_html(html_content)
+                                try:
+                                    value = cache.get(key)
+                                    if isinstance(value, dict | list | tuple):
+                                        cache_data[key] = json.dumps(value, indent=2)
+                                    else:
+                                        cache_data[key] = str(value)
+                                except Exception as e:
+                                    cache_data[key] = f"Error retrieving value: {e}"
                 else:
-                    return "Cache client doesn't support key listing"
-            else:
-                return "Cache backend doesn't support direct key access"
+                    # For backends that don't support key listing, try common patterns
+                    test_keys = []
+                    for i in range(1, 1000):  # Test guard IDs 1-999
+                        test_keys.append(f"guards_rts:{i}")
+
+                    for test_key in test_keys:
+                        try:
+                            value = cache.get(test_key)
+                            if value is not None:
+                                if isinstance(value, dict | list | tuple):
+                                    cache_data[test_key] = json.dumps(value, indent=2)
+                                else:
+                                    cache_data[test_key] = str(value)
+                        except Exception:
+                            print(f"Error retrieving value for key: {test_key}")
+                            continue
+
+            except ImportError:
+                # Redis not available, try fallback method
+                # Test known guard location keys
+                for i in range(1, 1000):
+                    test_key = f"guards_rts:{i}"
+                    try:
+                        value = cache.get(test_key)
+                        if value is not None:
+                            if isinstance(value, dict | list | tuple):
+                                cache_data[test_key] = json.dumps(value, indent=2)
+                            else:
+                                cache_data[test_key] = str(value)
+                    except Exception:
+                        print(f"Error retrieving value for key: {test_key}")
+                        continue
+
+            # Display results
+            if not cache_data:
+                return format_html(
+                    "<p><em>No cache keys found or cache is empty</em></p>"
+                )
+
+            # Format for HTML display
+            html_content = "<div style='max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px;'>"
+            html_content += (
+                f"<p><strong>Total Keys Found:</strong> {len(cache_data)}</p>"
+            )
+
+            for key, value in cache_data.items():
+                html_content += "<div style='margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #007cba;'>"
+                html_content += (
+                    f"<strong style='color: #007cba;'>Key:</strong> {key}<br>"
+                )
+                html_content += "<strong style='color: #28a745;'>Value:</strong><br>"
+                html_content += f"<pre style='white-space: pre-wrap; word-wrap: break-word; margin: 5px 0; padding: 5px; background-color: #ffffff; border: 1px solid #dee2e6;'>{value}</pre>"
+                html_content += "</div>"
+
+            html_content += "</div>"
+            return format_html(html_content)
 
         except Exception as e:
             return f"Error accessing cache: {e}"
