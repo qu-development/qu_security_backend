@@ -1,6 +1,9 @@
+import json
+
 from django.conf import settings
 from django.core.cache import caches
 from django.db import connection, models
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from solo.models import SingletonModel
 
@@ -92,6 +95,63 @@ class GeneralSettings(SingletonModel, BaseModel):
             )
         except Exception as e:
             return f"Error getting diagnostics: {e}"
+
+    @property
+    def cache_viewer(self):
+        """Display all keys and values in the Valkey cache."""
+        try:
+            cache = caches["default"]
+
+            # Try to get all keys using django-redis specific method
+            if hasattr(cache, "get_client"):
+                client = cache.get_client()
+                if hasattr(client, "keys"):
+                    keys = client.keys("*")
+                    if not keys:
+                        return format_html("<p><em>No keys found in cache</em></p>")
+
+                    cache_data = {}
+                    for key in keys:
+                        # Decode key if it's bytes
+                        if isinstance(key, bytes):
+                            key = key.decode("utf-8")
+
+                        try:
+                            value = cache.get(key)
+                            # Format the value for display
+                            if isinstance(value, dict | list | tuple):
+                                cache_data[key] = json.dumps(value, indent=2)
+                            else:
+                                cache_data[key] = str(value)
+                        except Exception as e:
+                            cache_data[key] = f"Error retrieving value: {e}"
+
+                    # Format for HTML display
+                    html_content = "<div style='max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px;'>"
+                    html_content += (
+                        f"<p><strong>Total Keys:</strong> {len(cache_data)}</p>"
+                    )
+
+                    for key, value in cache_data.items():
+                        html_content += "<div style='margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #007cba;'>"
+                        html_content += (
+                            f"<strong style='color: #007cba;'>Key:</strong> {key}<br>"
+                        )
+                        html_content += (
+                            "<strong style='color: #28a745;'>Value:</strong><br>"
+                        )
+                        html_content += f"<pre style='white-space: pre-wrap; word-wrap: break-word; margin: 5px 0; padding: 5px; background-color: #ffffff; border: 1px solid #dee2e6;'>{value}</pre>"
+                        html_content += "</div>"
+
+                    html_content += "</div>"
+                    return format_html(html_content)
+                else:
+                    return "Cache client doesn't support key listing"
+            else:
+                return "Cache backend doesn't support direct key access"
+
+        except Exception as e:
+            return f"Error accessing cache: {e}"
 
     class Meta:
         verbose_name = _("General Settings")
