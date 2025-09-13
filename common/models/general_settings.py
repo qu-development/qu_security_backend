@@ -51,15 +51,24 @@ class GeneralSettings(SingletonModel, BaseModel):
             cache_backend = settings.CACHES["default"]["BACKEND"]
             if "redis" in cache_backend.lower() or "valkey" in cache_backend.lower():
                 cache = caches["default"]
-                # The connection object is stored in _client for django-redis
-                connection_client = getattr(cache, "_client", None) or getattr(
-                    cache, "client", None
-                )
-                if connection_client and hasattr(connection_client, "ping"):
-                    if connection_client.ping():
+                try:
+                    # For django-redis, we can use the cache's get_client method
+                    if hasattr(cache, "get_client"):
+                        client = cache.get_client()
+                        if hasattr(client, "ping"):
+                            if client.ping():
+                                return "Connected (Valkey/Redis)"
+                            return "Disconnected: Ping failed (Valkey/Redis)"
+
+                    # Alternative approach: try to perform a simple cache operation
+                    test_key = "connectivity_test"
+                    cache.set(test_key, "test", 1)
+                    if cache.get(test_key) == "test":
+                        cache.delete(test_key)
                         return "Connected (Valkey/Redis)"
-                    return "Disconnected: Ping failed (Valkey/Redis)"
-                return "Error: Valkey/Redis client not found or does not support ping"
+                    return "Disconnected: Cache operation failed (Valkey/Redis)"
+                except Exception as conn_e:
+                    return f"Disconnected: {conn_e} (Valkey/Redis)"
             elif "locmem" in cache_backend.lower():
                 return "Active (In-Memory Cache)"
             else:
