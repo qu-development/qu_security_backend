@@ -401,19 +401,56 @@ scheme = "rediss" if VALKEY_SSL else "redis"
 
 
 def check_valkey_connection(host, port, use_ssl):
-    """Quick connectivity check to Valkey before Django starts."""
+    """Enhanced connectivity check to Valkey with detailed diagnostics."""
     try:
-        sock = socket.create_connection((host, port), timeout=2)
+        # Step 1: Basic socket connectivity test
+        logger.info(f"🔍 Testing socket connectivity to {host}:{port}")
+        sock = socket.create_connection((host, port), timeout=5)
+        logger.info(f"✅ Socket connection successful to {host}:{port}")
+
+        # Step 2: SSL wrapper if needed
         if use_ssl:
+            logger.info("🔒 Wrapping socket with SSL")
             context = ssl.create_default_context()
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
             sock = context.wrap_socket(sock, server_hostname=host)
+            logger.info("✅ SSL connection successful")
+
+        # Step 3: Test Redis protocol with PING command
+        logger.info("📡 Testing Redis protocol with PING command")
+        ping_command = b"PING\r\n"
+        sock.send(ping_command)
+        response = sock.recv(1024)
         sock.close()
-        logger.info(f"✅ Valkey reachable at {host}:{port} (SSL={use_ssl})")
-        return True
+
+        if b"+PONG" in response:
+            logger.info(
+                f"✅ Valkey/Redis PING successful at {host}:{port} (SSL={use_ssl})"
+            )
+            return True
+        else:
+            logger.warning(f"⚠️ Unexpected Redis response: {response}")
+            return False
+
+    except TimeoutError:
+        logger.error(
+            f"❌ Connection timeout to {host}:{port} - Check VPC/security groups"
+        )
+        return False
+    except socket.gaierror as e:
+        logger.error(f"❌ DNS resolution failed for {host}: {e}")
+        return False
+    except ConnectionRefusedError:
+        logger.error(f"❌ Connection refused to {host}:{port} - Service may be down")
+        return False
+    except ssl.SSLError as e:
+        logger.error(f"❌ SSL error connecting to {host}:{port}: {e}")
+        return False
     except Exception as e:
-        logger.warning(f"⚠️ Valkey not reachable at {host}:{port} — {e}")
+        logger.error(
+            f"❌ Valkey connection failed to {host}:{port}: {type(e).__name__}: {e}"
+        )
         return False
 
 

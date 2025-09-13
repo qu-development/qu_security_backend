@@ -76,6 +76,23 @@ class GeneralSettings(SingletonModel, BaseModel):
         except Exception as e:
             return f"Error determining cache status: {e}"
 
+    @property
+    def valkey_diagnostics(self):
+        """Detailed diagnostic information for Valkey connection."""
+        try:
+            endpoint = getattr(settings, "VALKEY_ENDPOINT", "Not configured")
+            port = getattr(settings, "VALKEY_PORT", "Not configured")
+            ssl_enabled = getattr(settings, "VALKEY_SSL", "Not configured")
+
+            return (
+                f"Endpoint: {endpoint} | "
+                f"Port: {port} | "
+                f"SSL: {ssl_enabled} | "
+                f"Backend: {settings.CACHES['default']['BACKEND']}"
+            )
+        except Exception as e:
+            return f"Error getting diagnostics: {e}"
+
     class Meta:
         verbose_name = _("General Settings")
         verbose_name_plural = _("General Settings")
