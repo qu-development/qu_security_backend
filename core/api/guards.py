@@ -159,6 +159,16 @@ class GuardViewSet(
                     description="Whether the guard is currently on shift",
                     example=True,
                 ),
+                "property_id": openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description="ID of the property where the guard is located (optional)",
+                    example=123,
+                ),
+                "property_name": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Name of the property where the guard is located (optional)",
+                    example="Main Office Building",
+                ),
             },
         ),
         responses={
@@ -239,6 +249,16 @@ class GuardViewSet(
                 "last_updated": now.isoformat(),
             }
 
+            # Add optional property information if provided
+            if (
+                "property_id" in request.data
+                and request.data["property_id"] is not None
+            ):
+                cache_data["property_id"] = request.data["property_id"]
+
+            if "property_name" in request.data and request.data["property_name"]:
+                cache_data["property_name"] = request.data["property_name"]
+
             # Store in cache with the specified structure: guards_rts:{guard_id: data}
             cache_key = f"guards_rts:{guard_id}"
 
@@ -294,6 +314,14 @@ class GuardViewSet(
                                     ),
                                     "last_updated": openapi.Schema(
                                         type=openapi.TYPE_STRING
+                                    ),
+                                    "property_id": openapi.Schema(
+                                        type=openapi.TYPE_INTEGER,
+                                        description="ID of the property (optional)",
+                                    ),
+                                    "property_name": openapi.Schema(
+                                        type=openapi.TYPE_STRING,
+                                        description="Name of the property (optional)",
                                     ),
                                 },
                             ),
