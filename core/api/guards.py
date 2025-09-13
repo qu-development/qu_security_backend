@@ -1,5 +1,8 @@
+from django.core.cache import cache
+from django.utils import timezone
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -120,3 +123,137 @@ class GuardViewSet(
         guard = self.get_object()
         serializer = GuardPropertiesShiftsSerializer(guard)
         return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_description="Update guard real-time location and status",
+        methods=["post"],
+        manual_parameters=[
+            openapi.Parameter(
+                "guard_id",
+                openapi.IN_QUERY,
+                description="ID of the guard to update",
+                type=openapi.TYPE_INTEGER,
+                required=True,
+            )
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["lat", "lon", "is_on_shift"],
+            properties={
+                "lat": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Latitude coordinate",
+                    example="40.7128",
+                ),
+                "lon": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Longitude coordinate",
+                    example="-74.0060",
+                ),
+                "is_on_shift": openapi.Schema(
+                    type=openapi.TYPE_BOOLEAN,
+                    description="Whether the guard is currently on shift",
+                    example=True,
+                ),
+            },
+        ),
+        responses={
+            200: openapi.Response(
+                description="Location updated successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "success": openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                        "message": openapi.Schema(type=openapi.TYPE_STRING),
+                        "guard_id": openapi.Schema(type=openapi.TYPE_INTEGER),
+                        "last_updated": openapi.Schema(type=openapi.TYPE_STRING),
+                    },
+                ),
+            ),
+            400: "Bad Request - Invalid data or missing guard_id",
+            404: "Guard not found",
+        },
+    )
+    @action(detail=False, methods=["post"], url_path="update-location")
+    def update_location(self, request):
+        """Update guard real-time location and shift status"""
+        try:
+            # Get guard_id from query parameters
+            guard_id = request.query_params.get("guard_id")
+            if not guard_id:
+                return Response(
+                    {"error": "guard_id query parameter is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Validate guard exists
+            try:
+                Guard.objects.get(id=guard_id)
+            except Guard.DoesNotExist:
+                return Response(
+                    {"error": f"Guard with id {guard_id} not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Validate request data
+            required_fields = ["lat", "lon", "is_on_shift"]
+            for field in required_fields:
+                if field not in request.data:
+                    return Response(
+                        {"error": f"Field '{field}' is required"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            # Validate latitude and longitude
+            try:
+                lat = float(request.data["lat"])
+                lon = float(request.data["lon"])
+                if not (-90 <= lat <= 90):
+                    raise ValueError("Latitude must be between -90 and 90")
+                if not (-180 <= lon <= 180):
+                    raise ValueError("Longitude must be between -180 and 180")
+            except (ValueError, TypeError) as e:
+                return Response(
+                    {"error": f"Invalid coordinates: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Validate is_on_shift
+            is_on_shift = request.data["is_on_shift"]
+            if not isinstance(is_on_shift, bool):
+                return Response(
+                    {"error": "is_on_shift must be a boolean"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Prepare data for cache
+            now = timezone.now()
+            cache_data = {
+                "lat": request.data["lat"],
+                "lon": request.data["lon"],
+                "is_on_shift": is_on_shift,
+                "last_updated": now.isoformat(),
+            }
+
+            # Store in cache with the specified structure: guards_rts:{guard_id: data}
+            cache_key = f"guards_rts:{guard_id}"
+
+            # Set cache with maximum timeout (30 days = 2592000 seconds)
+            # This is typically the maximum allowed by most cache backends
+            cache.set(cache_key, cache_data, timeout=2592000)
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Guard location updated successfully",
+                    "guard_id": int(guard_id),
+                    "last_updated": now.isoformat(),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"Internal server error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
