@@ -261,3 +261,111 @@ class GuardViewSet(
                 {"error": f"Internal server error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    @swagger_auto_schema(
+        operation_description="Get cached guard location data",
+        methods=["get"],
+        manual_parameters=[
+            openapi.Parameter(
+                "guard_id",
+                openapi.IN_QUERY,
+                description="ID of specific guard to get location for (optional - if not provided, returns all guards)",
+                type=openapi.TYPE_INTEGER,
+                required=False,
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description="Cached location data retrieved successfully",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "success": openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                        "data": openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            description="Guard location data from cache",
+                            additional_properties=openapi.Schema(
+                                type=openapi.TYPE_OBJECT,
+                                properties={
+                                    "lat": openapi.Schema(type=openapi.TYPE_STRING),
+                                    "lon": openapi.Schema(type=openapi.TYPE_STRING),
+                                    "is_on_shift": openapi.Schema(
+                                        type=openapi.TYPE_BOOLEAN
+                                    ),
+                                    "last_updated": openapi.Schema(
+                                        type=openapi.TYPE_STRING
+                                    ),
+                                },
+                            ),
+                        ),
+                        "total_guards": openapi.Schema(type=openapi.TYPE_INTEGER),
+                    },
+                ),
+            ),
+            404: "Guard not found or no cached data",
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="cached-locations")
+    def cached_locations(self, request):
+        """Get cached guard location data from Valkey"""
+        try:
+            guard_id = request.query_params.get("guard_id")
+
+            if guard_id:
+                # Get specific guard's cached location
+                try:
+                    # Validate guard exists
+                    Guard.objects.get(id=guard_id)
+                except Guard.DoesNotExist:
+                    return Response(
+                        {"error": f"Guard with id {guard_id} not found"},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+                cache_key = f"guards_rts:{guard_id}"
+                cached_data = cache.get(cache_key)
+
+                if not cached_data:
+                    return Response(
+                        {
+                            "error": f"No cached location data found for guard {guard_id}"
+                        },
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+                return Response(
+                    {
+                        "success": True,
+                        "data": {guard_id: cached_data},
+                        "total_guards": 1,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            else:
+                # Get all guards' cached locations
+                # First, get all guard IDs from the database
+                all_guard_ids = list(Guard.objects.values_list("id", flat=True))
+
+                cached_locations = {}
+                for gid in all_guard_ids:
+                    cache_key = f"guards_rts:{gid}"
+                    cached_data = cache.get(cache_key)
+                    if cached_data:
+                        cached_locations[str(gid)] = cached_data
+
+                return Response(
+                    {
+                        "success": True,
+                        "data": cached_locations,
+                        "total_guards": len(cached_locations),
+                        "total_guards_in_db": len(all_guard_ids),
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+        except Exception as e:
+            return Response(
+                {"error": f"Internal server error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
