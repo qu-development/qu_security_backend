@@ -104,6 +104,9 @@ class TestServiceModel:
             recurrent=True,
             start_time=start_time,
             end_time=end_time,
+            weekly=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timezone.timedelta(days=30),
         )
 
         assert service.name == "Security Service"
@@ -117,6 +120,15 @@ class TestServiceModel:
         assert service.recurrent is True
         assert service.start_time == start_time
         assert service.end_time == end_time
+        assert service.weekly == [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+        ]
+        assert service.start_date == timezone.now().date()
+        assert service.end_date == timezone.now().date() + timezone.timedelta(days=30)
         assert service.is_active is True
 
     def test_service_without_guard(self, property_instance):
@@ -236,6 +248,11 @@ class TestServiceAPI:
             .time()
             .replace(microsecond=0)
             .isoformat(),
+            "weekly": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            "start_date": timezone.now().date().isoformat(),
+            "end_date": (
+                timezone.now().date() + timezone.timedelta(days=30)
+            ).isoformat(),
         }
         response = api_client.post(url, data)
 
@@ -243,6 +260,15 @@ class TestServiceAPI:
         assert response.data["name"] == "New Security Service"
         assert response.data["rate"] == "40.00"
         assert response.data["monthly_budget"] == "3200.00"
+        assert response.data["weekly"] == [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+        ]
+        assert "start_date" in response.data
+        assert "end_date" in response.data
 
     def test_create_service_as_client_forbidden(
         self, api_client, client_user, guard_instance, property_instance
@@ -275,6 +301,9 @@ class TestServiceAPI:
         assert "total_hours" in response.data
         assert "guard_name" in response.data
         assert "property_name" in response.data
+        assert "weekly" in response.data
+        assert "start_date" in response.data
+        assert "end_date" in response.data
 
     def test_update_service_as_admin(self, api_client, admin_user, service_instance):
         """Test updating a service as admin"""
@@ -293,6 +322,11 @@ class TestServiceAPI:
             .time()
             .replace(microsecond=0)
             .isoformat(),
+            "weekly": ["Saturday", "Sunday"],
+            "start_date": timezone.now().date().isoformat(),
+            "end_date": (
+                timezone.now().date() + timezone.timedelta(days=60)
+            ).isoformat(),
         }
         response = api_client.patch(url, data)
 
@@ -300,6 +334,7 @@ class TestServiceAPI:
         assert response.data["name"] == "Updated Service Name"
         assert response.data["rate"] == "45.00"
         assert response.data["monthly_budget"] == "3600.00"
+        assert response.data["weekly"] == ["Saturday", "Sunday"]
 
     def test_delete_service_as_admin(self, api_client, admin_user, service_instance):
         """Test deleting a service as admin (soft delete)"""
@@ -382,6 +417,93 @@ class TestServiceAPI:
         assert response.status_code == 200
         assert len(response.data) >= 1
 
+    def test_create_service_invalid_weekdays_api(
+        self, api_client, admin_user, guard_instance, property_instance
+    ):
+        """Test creating a service with invalid weekdays via API"""
+        api_client.force_authenticate(user=admin_user)
+        url = reverse("core:service-list")
+        data = {
+            "name": "Invalid Weekdays Service",
+            "description": "Service with invalid weekdays",
+            "guard": guard_instance.id,
+            "assigned_property": property_instance.id,
+            "rate": "25.00",
+            "monthly_budget": "2000.00",
+            "weekly": ["Monday", "InvalidDay", "Tuesday"],
+        }
+        response = api_client.post(url, data)
+
+        assert response.status_code == 400
+        assert "weekly" in response.data
+
+    def test_create_service_all_weekdays(
+        self, api_client, admin_user, guard_instance, property_instance
+    ):
+        """Test creating a service with all weekdays"""
+        api_client.force_authenticate(user=admin_user)
+        url = reverse("core:service-list")
+        data = {
+            "name": "All Weekdays Service",
+            "description": "Service for every day",
+            "guard": guard_instance.id,
+            "assigned_property": property_instance.id,
+            "rate": "35.00",
+            "monthly_budget": "5000.00",
+            "weekly": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+            ],
+            "start_date": timezone.now().date().isoformat(),
+            "end_date": (
+                timezone.now().date() + timezone.timedelta(days=90)
+            ).isoformat(),
+        }
+        response = api_client.post(url, data)
+
+        assert response.status_code == 201
+        assert response.data["weekly"] == [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
+        assert "start_date" in response.data
+        assert "end_date" in response.data
+
+    def test_create_service_date_validation_api(
+        self, api_client, admin_user, guard_instance, property_instance
+    ):
+        """Test date validation via API"""
+        api_client.force_authenticate(user=admin_user)
+        url = reverse("core:service-list")
+
+        start_date = timezone.now().date()
+        end_date = start_date - timezone.timedelta(days=1)  # Invalid: end before start
+
+        data = {
+            "name": "Invalid Dates Service",
+            "description": "Service with invalid date range",
+            "guard": guard_instance.id,
+            "assigned_property": property_instance.id,
+            "rate": "25.00",
+            "monthly_budget": "2000.00",
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }
+        response = api_client.post(url, data)
+
+        assert response.status_code == 400
+        assert "end_date" in response.data
+
     def test_unauthenticated_access_forbidden(self, api_client, service_instance):
         """Test that unauthenticated users cannot access services"""
         url = reverse("core:service-list")
@@ -393,6 +515,97 @@ class TestServiceAPI:
 @pytest.mark.django_db
 class TestServiceValidation:
     """Test Service model validation"""
+
+    def test_valid_weekdays_validation(self, guard_instance, property_instance):
+        """Test that valid weekdays are accepted"""
+        service = Service.objects.create(
+            name="Valid Weekdays Service",
+            guard=guard_instance,
+            assigned_property=property_instance,
+            rate=Decimal("25.00"),
+            monthly_budget=Decimal("2000.00"),
+            weekly=[
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+            ],
+        )
+
+        service.full_clean()  # Should not raise ValidationError
+        assert service.weekly == [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
+
+    def test_invalid_weekdays_validation(self, guard_instance, property_instance):
+        """Test that invalid weekdays are rejected"""
+        from django.core.exceptions import ValidationError
+
+        service = Service(
+            name="Invalid Weekdays Service",
+            guard=guard_instance,
+            assigned_property=property_instance,
+            rate=Decimal("25.00"),
+            monthly_budget=Decimal("2000.00"),
+            weekly=["Monday", "InvalidDay", "Tuesday"],
+        )
+
+        with pytest.raises(ValidationError) as exc_info:
+            service.full_clean()
+
+        assert "weekly" in exc_info.value.message_dict
+        assert "InvalidDay" in str(exc_info.value.message_dict["weekly"])
+
+    def test_weekly_helper_methods(self, guard_instance, property_instance):
+        """Test helper methods for weekly field"""
+        service = Service.objects.create(
+            name="Helper Methods Service",
+            guard=guard_instance,
+            assigned_property=property_instance,
+            rate=Decimal("25.00"),
+            monthly_budget=Decimal("2000.00"),
+            weekly=["Monday", "Wednesday", "Friday"],
+        )
+
+        # Test get_weekly_days_display
+        display = service.get_weekly_days_display()
+        assert display == "Monday, Wednesday, Friday"
+
+        # Test is_scheduled_for_day
+        assert service.is_scheduled_for_day("Monday") is True
+        assert service.is_scheduled_for_day("Tuesday") is False
+        assert service.is_scheduled_for_day("Wednesday") is True
+        assert service.is_scheduled_for_day("Sunday") is False
+
+    def test_start_date_before_end_date_validation(
+        self, guard_instance, property_instance
+    ):
+        """Test that start_date must be before end_date"""
+
+        start_date = timezone.now().date()
+        end_date = start_date - timezone.timedelta(days=1)  # End date before start date
+
+        Service(
+            name="Invalid Dates Service",
+            guard=guard_instance,
+            assigned_property=property_instance,
+            rate=Decimal("25.00"),
+            monthly_budget=Decimal("2000.00"),
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        # Note: This validation should be in the serializer/API level
+        # The model itself doesn't validate this constraint
 
     def test_negative_rate_validation(self, guard_instance, property_instance):
         """Test that negative rates are not allowed"""

@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -10,6 +11,28 @@ from common.models import BaseModel
 
 class Service(BaseModel):
     """Model for services that can be assigned to properties"""
+
+    # Days of the week constants for weekly field
+    MONDAY = "Monday"
+    TUESDAY = "Tuesday"
+    WEDNESDAY = "Wednesday"
+    THURSDAY = "Thursday"
+    FRIDAY = "Friday"
+    SATURDAY = "Saturday"
+    SUNDAY = "Sunday"
+
+    WEEKDAYS_CHOICES = [
+        (MONDAY, _("Monday")),
+        (TUESDAY, _("Tuesday")),
+        (WEDNESDAY, _("Wednesday")),
+        (THURSDAY, _("Thursday")),
+        (FRIDAY, _("Friday")),
+        (SATURDAY, _("Saturday")),
+        (SUNDAY, _("Sunday")),
+    ]
+
+    # All weekdays for easy reference
+    ALL_WEEKDAYS = [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
 
     name = models.CharField(max_length=255, verbose_name=_("Name"))
     description = models.TextField(verbose_name=_("Description"), blank=True)
@@ -91,6 +114,32 @@ class Service(BaseModel):
         help_text=_("Whether this service is performed on a recurring basis"),
     )
 
+    # Weekly schedule - days of the week when service is performed
+    weekly = ArrayField(
+        models.CharField(max_length=10, choices=WEEKDAYS_CHOICES),
+        verbose_name=_("Weekly Schedule"),
+        null=True,
+        blank=True,
+        default=list,
+        help_text=_("Days of the week when this service is performed"),
+    )
+
+    # Service start date
+    start_date = models.DateField(
+        verbose_name=_("Start Date"),
+        null=True,
+        blank=True,
+        help_text=_("Date when this service begins (MM/DD/YYYY format)"),
+    )
+
+    # Service end date
+    end_date = models.DateField(
+        verbose_name=_("End Date"),
+        null=True,
+        blank=True,
+        help_text=_("Date when this service ends (MM/DD/YYYY format)"),
+    )
+
     # Hours will be calculated based on completed shifts
     # This is a computed field that will be calculated dynamically
     @property
@@ -104,6 +153,30 @@ class Service(BaseModel):
             )["total"]
             or 0
         )
+
+    def get_weekly_days_display(self):
+        """Return a formatted string of weekly days"""
+        if not self.weekly:
+            return _("No days selected")
+        return ", ".join(self.weekly)
+
+    def is_scheduled_for_day(self, day_name):
+        """Check if service is scheduled for a specific day"""
+        return day_name in (self.weekly or [])
+
+    def clean(self):
+        """Validate weekly field contains only valid weekdays"""
+        super().clean()
+        if self.weekly:
+            invalid_days = [day for day in self.weekly if day not in self.ALL_WEEKDAYS]
+            if invalid_days:
+                raise ValidationError(
+                    {
+                        "weekly": _(
+                            "Invalid weekdays: {}. Valid options are: {}"
+                        ).format(", ".join(invalid_days), ", ".join(self.ALL_WEEKDAYS))
+                    }
+                )
 
     class Meta:
         verbose_name = _("Service")
