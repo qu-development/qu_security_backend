@@ -6,7 +6,9 @@ from core.models import Service
 class ServiceSerializer(serializers.ModelSerializer):
     """Serializer for Service model"""
 
-    total_hours = serializers.ReadOnlyField()
+    total_hours = serializers.IntegerField(
+        source="scheduled_total_hours", read_only=True
+    )
     guard_name = serializers.CharField(
         source="guard.user.get_full_name", read_only=True
     )
@@ -92,6 +94,7 @@ class ServiceCreateSerializer(serializers.ModelSerializer):
             "weekly",
             "start_date",
             "end_date",
+            "scheduled_total_hours",
             "is_active",
         ]
 
@@ -140,5 +143,6 @@ class ServiceUpdateSerializer(serializers.ModelSerializer):
             "weekly",
             "start_date",
             "end_date",
+            "scheduled_total_hours",
             "is_active",
         ]

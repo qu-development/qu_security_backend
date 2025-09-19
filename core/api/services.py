@@ -1,5 +1,5 @@
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -91,15 +91,28 @@ class ServiceViewSet(
         responses={201: ServiceSerializer, 400: "Bad Request"},
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
+
+        # Return the created instance using ServiceSerializer to include total_hours
+        response_serializer = ServiceSerializer(instance)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
         operation_description="Update service information (full update)",
         request_body=ServiceUpdateSerializer,
-        responses={200: ServiceUpdateSerializer, 400: "Bad Request", 404: "Not Found"},
+        responses={200: ServiceSerializer, 400: "Bad Request", 404: "Not Found"},
     )
     def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        updated_instance = serializer.save()
+
+        # Return the updated instance using ServiceSerializer to include total_hours
+        response_serializer = ServiceSerializer(updated_instance)
+        return Response(response_serializer.data)
 
     @swagger_auto_schema(
         operation_description="Partially update service information",
@@ -107,7 +120,14 @@ class ServiceViewSet(
         responses={200: ServiceSerializer, 400: "Bad Request"},
     )
     def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated_instance = serializer.save()
+
+        # Return the updated instance using ServiceSerializer to include total_hours
+        response_serializer = ServiceSerializer(updated_instance)
+        return Response(response_serializer.data)
 
     @swagger_auto_schema(
         operation_description="Delete a service (soft delete)",

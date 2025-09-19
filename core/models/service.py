@@ -140,6 +140,13 @@ class Service(BaseModel):
         help_text=_("Date when this service ends (MM/DD/YYYY format)"),
     )
 
+    # Scheduled total hours for this service
+    scheduled_total_hours = models.PositiveIntegerField(
+        verbose_name=_("Scheduled Total Hours"),
+        default=0,
+        help_text=_("Total scheduled hours for this service"),
+    )
+
     # Hours will be calculated based on completed shifts
     # This is a computed field that will be calculated dynamically
     @property
