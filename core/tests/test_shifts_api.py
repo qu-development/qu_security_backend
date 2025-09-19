@@ -247,3 +247,139 @@ def test_shift_with_specific_weapon_returns_correct_weapon_details():
     assert data["weapon_details"] is not None
     assert data["weapon_details"]["serial_number"] == "DEF456"
     assert data["weapon_details"]["model"] == "Sig Sauer P320"
+
+
+@pytest.mark.django_db
+def test_shift_planned_hours_worked_calculation():
+    """Test that planned_hours_worked is calculated correctly"""
+    # Arrange: create guard and property
+    guard_user = baker.make(User)
+    guard = baker.make(Guard, user=guard_user)
+
+    owner_user = baker.make(User)
+    owner_client = baker.make(Client, user=owner_user)
+    prop = baker.make(Property, owner=owner_client)
+
+    acting_user = baker.make(User)
+    api = APIClient()
+    api.force_authenticate(user=acting_user)
+
+    # Test case 1: 4 hour shift (9:00 AM to 1:00 PM)
+    payload = {
+        "guard": guard.id,
+        "property": prop.id,
+        "planned_start_time": "2025-01-01T09:00:00Z",
+        "planned_end_time": "2025-01-01T13:00:00Z",
+        "is_armed": False,
+    }
+
+    # Act
+    url = reverse("core:shift-list")
+    resp = api.post(url, payload, format="json")
+
+    # Assert
+    assert resp.status_code == 201
+    data = resp.json()
+    assert float(data["planned_hours_worked"]) == 4.0
+
+
+@pytest.mark.django_db
+def test_shift_planned_hours_worked_half_hours():
+    """Test planned_hours_worked with half hours"""
+    # Arrange: create guard and property
+    guard_user = baker.make(User)
+    guard = baker.make(Guard, user=guard_user)
+
+    owner_user = baker.make(User)
+    owner_client = baker.make(Client, user=owner_user)
+    prop = baker.make(Property, owner=owner_client)
+
+    acting_user = baker.make(User)
+    api = APIClient()
+    api.force_authenticate(user=acting_user)
+
+    # Test case: 2.5 hour shift (9:00 AM to 11:30 AM)
+    payload = {
+        "guard": guard.id,
+        "property": prop.id,
+        "planned_start_time": "2025-01-01T09:00:00Z",
+        "planned_end_time": "2025-01-01T11:30:00Z",
+        "is_armed": False,
+    }
+
+    # Act
+    url = reverse("core:shift-list")
+    resp = api.post(url, payload, format="json")
+
+    # Assert
+    assert resp.status_code == 201
+    data = resp.json()
+    assert float(data["planned_hours_worked"]) == 2.5
+
+
+@pytest.mark.django_db
+def test_shift_planned_hours_worked_no_planned_times():
+    """Test planned_hours_worked when planned times are not set"""
+    # Arrange: create guard and property
+    guard_user = baker.make(User)
+    guard = baker.make(Guard, user=guard_user)
+
+    owner_user = baker.make(User)
+    owner_client = baker.make(Client, user=owner_user)
+    prop = baker.make(Property, owner=owner_client)
+
+    acting_user = baker.make(User)
+    api = APIClient()
+    api.force_authenticate(user=acting_user)
+
+    # Test case: No planned times
+    payload = {
+        "guard": guard.id,
+        "property": prop.id,
+        "is_armed": False,
+    }
+
+    # Act
+    url = reverse("core:shift-list")
+    resp = api.post(url, payload, format="json")
+
+    # Assert
+    assert resp.status_code == 201
+    data = resp.json()
+    assert float(data["planned_hours_worked"]) == 0.0
+
+
+@pytest.mark.django_db
+def test_shift_planned_hours_worked_update():
+    """Test that planned_hours_worked updates when planned times change"""
+    # Arrange: create shift
+    guard_user = baker.make(User)
+    guard = baker.make(Guard, user=guard_user)
+
+    owner_user = baker.make(User)
+    owner_client = baker.make(Client, user=owner_user)
+    prop = baker.make(Property, owner=owner_client)
+
+    shift = baker.make(
+        "Shift",
+        guard=guard,
+        property=prop,
+        planned_start_time="2025-01-01T09:00:00Z",
+        planned_end_time="2025-01-01T13:00:00Z",  # 4 hours initially
+    )
+
+    api = APIClient()
+    api.force_authenticate(user=guard_user)  # Authenticate as the guard user
+
+    # Act: Update to 8 hours
+    url = reverse("core:shift-detail", kwargs={"pk": shift.id})
+    payload = {
+        "planned_start_time": "2025-01-01T08:00:00Z",
+        "planned_end_time": "2025-01-01T16:00:00Z",
+    }
+    resp = api.patch(url, payload, format="json")
+
+    # Assert
+    assert resp.status_code == 200
+    data = resp.json()
+    assert float(data["planned_hours_worked"]) == 8.0

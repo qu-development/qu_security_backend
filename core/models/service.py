@@ -146,20 +146,16 @@ class Service(BaseModel):
         default=0,
         help_text=_("Total scheduled hours for this service"),
     )
-
-    # Hours will be calculated based on completed shifts
-    # This is a computed field that will be calculated dynamically
-    @property
-    def total_hours(self):
-        """Calculate total hours based on completed shifts for this service"""
-        from .shift import Shift
-
-        return (
-            self.shifts.filter(status=Shift.Status.COMPLETED).aggregate(
-                total=models.Sum("hours_worked")
-            )["total"]
-            or 0
-        )
+    total_hours = models.PositiveIntegerField(
+        verbose_name=_("Total Hours"),
+        default=0,
+        help_text=_("Total hours worked for this service"),
+    )
+    total_hours_planned = models.PositiveIntegerField(
+        verbose_name=_("Total Planned Hours"),
+        default=0,
+        help_text=_("Total planned hours for this service"),
+    )
 
     def get_weekly_days_display(self):
         """Return a formatted string of weekly days"""

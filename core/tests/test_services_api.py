@@ -158,13 +158,15 @@ class TestServiceModel:
         assert service.assigned_property is None
 
     def test_service_total_hours_calculation(self, service_instance):
-        """Test total hours calculation based on shifts"""
-        # Create some shifts for the service
+        """Test total hours calculation based on shifts via signals"""
+        # Create some shifts for the service with planned times
         baker.make(
             Shift,
             service=service_instance,
             guard=service_instance.guard,
             property=service_instance.assigned_property,
+            planned_start_time=timezone.now(),
+            planned_end_time=timezone.now() + timezone.timedelta(hours=8),
             start_time=timezone.now(),
             end_time=timezone.now() + timezone.timedelta(hours=8),
             hours_worked=8,
@@ -175,15 +177,59 @@ class TestServiceModel:
             service=service_instance,
             guard=service_instance.guard,
             property=service_instance.assigned_property,
+            planned_start_time=timezone.now(),
+            planned_end_time=timezone.now() + timezone.timedelta(hours=6),
             start_time=timezone.now(),
             end_time=timezone.now() + timezone.timedelta(hours=6),
             hours_worked=6,
             status="completed",
         )
 
-        # Test that total_hours method works
-        total_hours = service_instance.total_hours
-        assert total_hours == 14  # 8 + 6 hours
+        # Refresh service from database to get updated values from signals
+        service_instance.refresh_from_db()
+
+        # Test that total_hours field is updated correctly (only completed shifts)
+        assert service_instance.total_hours == 14  # 8 + 6 hours
+
+        # Test that total_hours_planned field is updated correctly (all shifts)
+        assert service_instance.total_hours_planned == 14  # 8 + 6 planned hours
+
+    def test_service_hours_with_mixed_shift_statuses(self, service_instance):
+        """Test that total_hours only counts completed shifts but total_hours_planned counts all"""
+        # Create completed shift with planned times
+        baker.make(
+            Shift,
+            service=service_instance,
+            guard=service_instance.guard,
+            property=service_instance.assigned_property,
+            planned_start_time=timezone.now(),
+            planned_end_time=timezone.now() + timezone.timedelta(hours=8),
+            start_time=timezone.now(),
+            end_time=timezone.now() + timezone.timedelta(hours=8),
+            hours_worked=8,
+            status="completed",
+        )
+
+        # Create scheduled shift (not completed) with planned times
+        baker.make(
+            Shift,
+            service=service_instance,
+            guard=service_instance.guard,
+            property=service_instance.assigned_property,
+            planned_start_time=timezone.now(),
+            planned_end_time=timezone.now() + timezone.timedelta(hours=6),
+            hours_worked=0,
+            status="scheduled",
+        )
+
+        # Refresh service from database to get updated values from signals
+        service_instance.refresh_from_db()
+
+        # total_hours should only include completed shifts
+        assert service_instance.total_hours == 8  # Only completed shift
+
+        # total_hours_planned should include all shifts
+        assert service_instance.total_hours_planned == 14  # 8 + 6 planned hours
 
     def test_service_string_representation(self, service_instance):
         """Test service string representation"""
@@ -299,6 +345,7 @@ class TestServiceAPI:
         assert response.data["id"] == service_instance.id
         assert response.data["name"] == service_instance.name
         assert "total_hours" in response.data
+        assert "total_hours_planned" in response.data
         assert "guard_name" in response.data
         assert "property_name" in response.data
         assert "weekly" in response.data

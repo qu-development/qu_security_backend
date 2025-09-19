@@ -27,6 +27,7 @@ class ShiftSerializer(serializers.ModelSerializer):
             "service_details",
             "planned_start_time",
             "planned_end_time",
+            "planned_hours_worked",
             "start_time",
             "end_time",
             "hours_worked",
@@ -35,7 +36,7 @@ class ShiftSerializer(serializers.ModelSerializer):
             "weapon",
             "weapon_details",
         ]
-        read_only_fields = ["id", "hours_worked"]
+        read_only_fields = ["id", "hours_worked", "planned_hours_worked"]
 
     def validate(self, attrs):
         """Ensure end times are after start times."""
@@ -81,19 +82,52 @@ class ShiftSerializer(serializers.ModelSerializer):
         seconds = (end - start).total_seconds()
         return int(max(0, seconds // 3600))
 
+    def _compute_planned_hours(self, start, end) -> float:
+        """Calculate planned hours from start and end times"""
+        if not start or not end:
+            return 0.0
+        seconds = (end - start).total_seconds()
+        hours = seconds / 3600
+        return round(max(0, hours), 2)
+
     def create(self, validated_data):
+        # Calculate actual hours worked
         hours = self._compute_hours(
             validated_data.get("start_time"), validated_data.get("end_time")
         )
         validated_data["hours_worked"] = hours
+
+        # Calculate planned hours worked
+        planned_hours = self._compute_planned_hours(
+            validated_data.get("planned_start_time"),
+            validated_data.get("planned_end_time"),
+        )
+        validated_data["planned_hours_worked"] = planned_hours
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         start = validated_data.get("start_time", instance.start_time)
         end = validated_data.get("end_time", instance.end_time)
+
+        planned_start = validated_data.get(
+            "planned_start_time", instance.planned_start_time
+        )
+        planned_end = validated_data.get("planned_end_time", instance.planned_end_time)
+
         instance = super().update(instance, validated_data)
+
+        # Update actual hours worked
         instance.hours_worked = self._compute_hours(start, end)
-        instance.save(update_fields=["hours_worked", "updated_at"])
+
+        # Update planned hours worked
+        instance.planned_hours_worked = self._compute_planned_hours(
+            planned_start, planned_end
+        )
+
+        instance.save(
+            update_fields=["hours_worked", "planned_hours_worked", "updated_at"]
+        )
         return instance
 
     def get_weapon_details(self, obj):
