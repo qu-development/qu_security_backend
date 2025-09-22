@@ -34,7 +34,17 @@ class GuardViewSet(
     destroy: Deletes a guard
     """
 
-    queryset = Guard.objects.all().order_by("id")
+    queryset = (
+        Guard.objects.select_related(
+            "user"
+        )  # To access user.username, user.first_name, etc.
+        .prefetch_related(
+            "weapons",  # To load related weapons efficiently
+            "services",  # To load related services efficiently
+        )
+        .all()
+        .order_by("id")
+    )
     # Enable global search and ordering
     search_fields = [
         "user__username",

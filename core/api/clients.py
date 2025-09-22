@@ -30,7 +30,12 @@ class ClientViewSet(
     destroy: Deletes a client
     """
 
-    queryset = Client.objects.all().order_by("id")
+    queryset = (
+        Client.objects.select_related("user")
+        .prefetch_related("properties")
+        .all()
+        .order_by("id")
+    )
     # Enable global search and ordering
     search_fields = [
         "user__username",

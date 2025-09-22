@@ -25,7 +25,11 @@ class ExpenseViewSet(
     destroy: Deletes an expense
     """
 
-    queryset = Expense.objects.all().order_by("-id")
+    queryset = (
+        Expense.objects.select_related("assigned_property__owner__user")
+        .all()
+        .order_by("-id")
+    )
     serializer_class = ExpenseSerializer
 
     def get_permissions(self):

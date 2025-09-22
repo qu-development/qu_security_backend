@@ -30,7 +30,8 @@ class ServiceViewSet(
     """
 
     queryset = (
-        Service.objects.select_related("guard", "assigned_property")
+        Service.objects.select_related("guard__user", "assigned_property__owner__user")
+        .prefetch_related("shifts")
         .all()
         .order_by("id")
     )
@@ -149,7 +150,16 @@ class ServiceViewSet(
     def shifts(self, request, pk=None):
         """Get all shifts for a specific service"""
         service = self.get_object()
-        shifts = service.shifts.all().order_by("-start_time")
+        # Optimizar la consulta de shifts con select_related
+        shifts = (
+            service.shifts.select_related(
+                "guard__user",
+                "property",  # Corregido: es 'property', no 'assigned_property'
+                "service",
+            )
+            .all()
+            .order_by("-start_time")
+        )
 
         serializer = ShiftSerializer(shifts, many=True)
         return Response(serializer.data)

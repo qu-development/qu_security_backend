@@ -36,7 +36,14 @@ class GuardPropertyTariffViewSet(
     by_property: Returns tariffs filtered by property_id
     """
 
-    queryset = GuardPropertyTariff.objects.all().order_by("-id")
+    queryset = (
+        GuardPropertyTariff.objects.select_related(
+            "guard__user",  # To access guard information
+            "property__owner__user",  # To access property owner client information
+        )
+        .all()
+        .order_by("-id")
+    )
     serializer_class = GuardPropertyTariffSerializer
 
     def get_serializer_class(self):

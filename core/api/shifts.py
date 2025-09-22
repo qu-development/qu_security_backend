@@ -25,7 +25,16 @@ class ShiftViewSet(
     destroy: Deletes a shift
     """
 
-    queryset = Shift.objects.all().order_by("-start_time")
+    queryset = (
+        Shift.objects.select_related(
+            "guard__user",  # To access guard.user.username, first_name, etc.
+            "property__owner__user",  # To access property.owner information
+            "service__guard__user",  # For service information and its guard
+            "weapon",  # For weapon information if assigned
+        )
+        .all()
+        .order_by("-start_time")
+    )
     serializer_class = ShiftSerializer
 
     def get_permissions(self):

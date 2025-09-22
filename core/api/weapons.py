@@ -27,7 +27,14 @@ class WeaponViewSet(
     destroy: Soft deletes a weapon
     """
 
-    queryset = Weapon.objects.all().order_by("id")
+    queryset = (
+        Weapon.objects.select_related(
+            "guard__user"  # To access guard.user.username, first_name, etc.
+        )
+        .prefetch_related("shifts")  # To load shifts where the weapon was used
+        .all()
+        .order_by("id")
+    )
     serializer_class = WeaponSerializer
     search_fields = [
         "serial_number",

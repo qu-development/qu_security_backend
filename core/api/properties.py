@@ -32,7 +32,18 @@ class PropertyViewSet(
     destroy: Deletes a property
     """
 
-    queryset = Property.objects.all().order_by("id")
+    queryset = (
+        Property.objects.select_related(
+            "owner__user"  # To access owner.user.username, first_name, etc.
+        )
+        .prefetch_related(
+            "assigned_services",  # Services assigned to this property
+            "expenses",  # Expenses related to this property
+            "shifts",  # Shifts related to this property
+        )
+        .all()
+        .order_by("id")
+    )
     # Enable global search and ordering
     search_fields = [
         "name",
@@ -240,7 +251,10 @@ class PropertyViewSet(
     def shifts(self, request, pk=None):
         """Get all shifts for a specific property"""
         property_obj = self.get_object()
-        shifts = property_obj.shifts.all()
+        # Optimizar la consulta de shifts con select_related
+        shifts = property_obj.shifts.select_related(
+            "guard__user", "service", "assigned_property"
+        ).all()
         from ..serializers import ShiftSerializer
 
         serializer = ShiftSerializer(shifts, many=True)
@@ -254,6 +268,8 @@ class PropertyViewSet(
     def expenses(self, request, pk=None):
         """Get all expenses for a specific property"""
         property_obj = self.get_object()
+        # No necesitamos select_related("property") porque ya estamos filtrando por property
+        # Los expenses ya están relacionados con esta property específica
         expenses = property_obj.expenses.all()
         from ..serializers import ExpenseSerializer
 
