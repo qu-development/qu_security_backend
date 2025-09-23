@@ -15,9 +15,16 @@ if TYPE_CHECKING:  # pragma: no cover - for type checkers only
 
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.decorators import action
 
+from .bulk_serializers import (
+    BulkCreateRequestSerializer,
+    BulkDeleteRequestSerializer,
+    BulkResponseSerializer,
+    BulkUpdateRequestSerializer,
+)
 from .constants import API_MESSAGES
 from .utils import ModelHelper, ResponseHelper
 
@@ -248,6 +255,97 @@ class BulkActionMixin:
     Mixin to add bulk actions to ViewSets
     """
 
+    @swagger_auto_schema(
+        operation_description="Create multiple objects in a single request",
+        request_body=BulkCreateRequestSerializer,
+        responses={
+            201: BulkResponseSerializer,
+            207: "Multi-Status - Some objects created, some failed",
+            400: "Bad Request - Invalid data or no items provided",
+        },
+        tags=["Bulk Operations"],
+    )
+    @action(detail=False, methods=["post"])
+    def bulk_create(self, request):
+        """Bulk create objects"""
+        items = request.data.get("items", [])
+        if not items:
+            return ResponseHelper.error_response(
+                message="No items provided", status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        created_objects = []
+        errors = []
+
+        for index, item_data in enumerate(items):
+            serializer = self.get_serializer(data=item_data)
+            if serializer.is_valid():
+                try:
+                    created_obj = serializer.save()
+                    created_objects.append(created_obj)
+                except Exception as e:
+                    error_msg = f"Item {index}: Creation failed - {str(e)}"
+                    errors.append(error_msg)
+            else:
+                # Format validation errors in a user-friendly way
+                error_details = []
+                for field, field_errors in serializer.errors.items():
+                    error_messages = [str(error) for error in field_errors]
+                    error_details.append(f"{field}: {', '.join(error_messages)}")
+
+                error_msg = (
+                    f"Item {index}: Validation failed - {'; '.join(error_details)}"
+                )
+                errors.append(error_msg)
+
+        response_data = {
+            "created_count": len(created_objects),
+            "total_attempted": len(items),
+        }
+
+        if created_objects:
+            response_data["created_objects"] = self.get_serializer(
+                created_objects, many=True
+            ).data
+
+        if errors:
+            response_data["errors"] = errors
+
+        # Determine appropriate response status and success flag
+        created_count = len(created_objects)
+        total_count = len(items)
+
+        if created_count == 0:
+            # Complete failure - no objects created
+            return ResponseHelper.error_response(
+                message=f"Failed to create any objects. 0 of {total_count} items created.",
+                errors=response_data,
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        elif created_count == total_count:
+            # Complete success - all objects created
+            return ResponseHelper.success_response(
+                message=f"Successfully created all {created_count} objects",
+                data=response_data,
+                status_code=status.HTTP_201_CREATED,
+            )
+        else:
+            # Partial success - some objects created, some failed
+            return ResponseHelper.success_response(
+                message=f"Partially successful: {created_count} of {total_count} objects created",
+                data=response_data,
+                status_code=207,  # Multi-Status
+            )
+
+    @swagger_auto_schema(
+        operation_description="Delete multiple objects by their IDs",
+        request_body=BulkDeleteRequestSerializer,
+        responses={
+            200: BulkResponseSerializer,
+            400: "Bad Request - No IDs provided",
+        },
+        tags=["Bulk Operations"],
+    )
     @action(detail=False, methods=["post"])
     def bulk_delete(self, request):
         """Bulk delete objects"""
@@ -271,6 +369,15 @@ class BulkActionMixin:
             data={"deleted_count": count},
         )
 
+    @swagger_auto_schema(
+        operation_description="Update multiple objects in a single request",
+        request_body=BulkUpdateRequestSerializer,
+        responses={
+            200: BulkResponseSerializer,
+            400: "Bad Request - No updates provided",
+        },
+        tags=["Bulk Operations"],
+    )
     @action(detail=False, methods=["post"])
     def bulk_update(self, request):
         """Bulk update objects"""

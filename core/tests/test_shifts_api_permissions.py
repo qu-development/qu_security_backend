@@ -1,5 +1,5 @@
 import pytest
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.urls import reverse
 from django.utils import timezone
 from model_bakery import baker
@@ -9,8 +9,17 @@ from core.models import Client, Guard, Property, Shift
 from permissions.utils import PermissionManager
 
 
+@pytest.fixture
+def setup_groups():
+    """Create necessary Groups for permission tests"""
+    Group.objects.get_or_create(name="Administrators")
+    Group.objects.get_or_create(name="Managers")
+    Group.objects.get_or_create(name="Clients")
+    Group.objects.get_or_create(name="Guards")
+
+
 @pytest.mark.django_db
-def test_shift_list_guard_sees_only_own_shifts():
+def test_shift_list_guard_sees_only_own_shifts(setup_groups):
     # Arrange: two guards, one client/property, two shifts (one per guard)
     owner_user = baker.make(User)
     client = baker.make(Client, user=owner_user)
@@ -58,7 +67,7 @@ def test_shift_list_guard_sees_only_own_shifts():
 
 
 @pytest.mark.django_db
-def test_shift_list_client_sees_only_shifts_on_their_properties():
+def test_shift_list_client_sees_only_shifts_on_their_properties(setup_groups):
     # Arrange: two clients, one property each, shared guard
     client_user_1 = baker.make(User)
     client_1 = baker.make(Client, user=client_user_1)
@@ -109,7 +118,7 @@ def test_shift_list_client_sees_only_shifts_on_their_properties():
 
 
 @pytest.mark.django_db
-def test_shift_update_assigned_guard_ok_and_other_guard_forbidden():
+def test_shift_update_assigned_guard_ok_and_other_guard_forbidden(setup_groups):
     # Arrange
     owner_user = baker.make(User)
     client = baker.make(Client, user=owner_user)
@@ -149,7 +158,7 @@ def test_shift_update_assigned_guard_ok_and_other_guard_forbidden():
 
 
 @pytest.mark.django_db
-def test_shift_update_manager_ok():
+def test_shift_update_manager_ok(setup_groups):
     # Arrange
     manager_user = baker.make(User)
     owner_user = baker.make(User)
@@ -185,7 +194,7 @@ def test_shift_update_manager_ok():
 
 
 @pytest.mark.django_db
-def test_shift_soft_delete_and_restore():
+def test_shift_soft_delete_and_restore(setup_groups):
     # Arrange
     manager_user = baker.make(User)
     PermissionManager.assign_user_role(
