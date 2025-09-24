@@ -245,6 +245,10 @@ class TestServiceAPI:
         api_client.force_authenticate(user=admin_user)
         url = reverse("core:service-list")
         response = api_client.get(url)
+        print("%" * 100)
+        print(response.data)
+        print(service_instance.name)
+        print("%" * 100)
 
         assert response.status_code == 200
         assert len(response.data["results"]) >= 1

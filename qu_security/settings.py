@@ -383,6 +383,8 @@ VALKEY_ENDPOINT = os.environ.get(
 )
 VALKEY_PORT = int(os.environ.get("VALKEY_PORT", "6379"))
 VALKEY_SSL = os.environ.get("VALKEY_SSL", "True").lower() == "true"
+VALKEY_PASSWORD = os.environ.get("VALKEY_PASSWORD")
+VALKEY_MAX_CONNECTIONS = int(os.environ.get("VALKEY_MAX_CONNECTIONS", "50"))
 
 # Temporarily disable Valkey cache due to VPC connectivity issues
 # CACHES = {
@@ -398,6 +400,10 @@ VALKEY_SSL = os.environ.get("VALKEY_SSL", "True").lower() == "true"
 
 # Original Valkey configuration (commented out for VPC troubleshooting)
 scheme = "rediss" if VALKEY_SSL else "redis"
+
+# Toggle Valkey usage. Set USE_VALKEY=False in local dev to avoid VPC connectivity issues
+# connecting to AWS ElastiCache from your laptop. When False, we use in-memory caches.
+USE_VALKEY = os.environ.get("USE_VALKEY", "True").lower() == "true"
 
 
 def check_valkey_connection(host, port, use_ssl):
@@ -456,48 +462,68 @@ def check_valkey_connection(host, port, use_ssl):
 
 # Configure Valkey/Redis cache with built-in resilience
 # Let django-redis handle connection failures gracefully instead of pre-checking
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "ssl_cert_reqs": None,
-                "retry_on_timeout": True,
-                "socket_connect_timeout": 5,
-                "socket_timeout": 5,
+if USE_VALKEY:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": {
+                    "ssl_cert_reqs": None,
+                    "retry_on_timeout": True,
+                    "socket_connect_timeout": 5,
+                    "socket_timeout": 5,
+                    "max_connections": VALKEY_MAX_CONNECTIONS,
+                    "socket_keepalive": True,
+                },
+                "SSL": VALKEY_SSL,
+                "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+                "IGNORE_EXCEPTIONS": True,  # Gracefully handle connection failures
+                "PASSWORD": VALKEY_PASSWORD,
             },
-            "SSL": VALKEY_SSL,
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "IGNORE_EXCEPTIONS": True,  # Gracefully handle connection failures
+            "KEY_PREFIX": "qu_security",
+            "TIMEOUT": 300,
         },
-        "KEY_PREFIX": "qu_security",
-        "TIMEOUT": 300,
-    },
-    "session": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "ssl_cert_reqs": None,
-                "retry_on_timeout": True,
-                "socket_connect_timeout": 5,
-                "socket_timeout": 5,
+        "session": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": {
+                    "ssl_cert_reqs": None,
+                    "retry_on_timeout": True,
+                    "socket_connect_timeout": 5,
+                    "socket_timeout": 5,
+                    "max_connections": VALKEY_MAX_CONNECTIONS,
+                    "socket_keepalive": True,
+                },
+                "SSL": VALKEY_SSL,
+                "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+                "IGNORE_EXCEPTIONS": True,  # Gracefully handle connection failures
+                "PASSWORD": VALKEY_PASSWORD,
             },
-            "SSL": VALKEY_SSL,
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "IGNORE_EXCEPTIONS": True,  # Gracefully handle connection failures
+            "KEY_PREFIX": "qu_security_session",
+            "TIMEOUT": 3600,
         },
-        "KEY_PREFIX": "qu_security_session",
-        "TIMEOUT": 3600,
-    },
-}
-
-logger.info(
-    f"✅ Configured Valkey cache at {VALKEY_ENDPOINT}:{VALKEY_PORT} (SSL={VALKEY_SSL})"
-)
+    }
+    logger.info(
+        f"✅ Using Valkey cache at {VALKEY_ENDPOINT}:{VALKEY_PORT} (SSL={VALKEY_SSL})"
+    )
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "qu-security-default",
+            "TIMEOUT": 300,
+        },
+        "session": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "qu-security-sessions",
+            "TIMEOUT": 3600,
+        },
+    }
+    logger.info("✅ Using local in-memory cache backend (LocMemCache)")
 
 # Use Valkey for sessions
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
