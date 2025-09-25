@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import logging
 import os
 import socket
-import ssl
 from datetime import timedelta
 from pathlib import Path
 
@@ -377,129 +376,127 @@ AWS_SQS_REGION = os.environ.get("AWS_SQS_REGION", "us-east-1")
 AWS_SQS_DLQ_URL = os.environ.get("AWS_SQS_DLQ_URL")  # Dead Letter Queue
 
 # Cache Configuration
-# Valkey Cache Configuration for AWS ElastiCache
-VALKEY_ENDPOINT = os.environ.get(
-    "VALKEY_ENDPOINT", "qu-security-main-inu7dr.serverless.use2.cache.amazonaws.com"
+# Memcached Cache Configuration for AWS ElastiCache
+# Determine environment and endpoint
+IS_AWS_LAMBDA = bool(os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+IS_LOCAL = not IS_AWS_LAMBDA
+if IS_LOCAL:
+    # Force local Memcached for development regardless of env var
+    MEMCACHED_ENDPOINT = "127.0.0.1"
+else:
+    MEMCACHED_ENDPOINT = os.environ.get(
+        "MEMCACHED_ENDPOINT",
+        "qu-security-cache.inu7dr.0001.use2.cache.amazonaws.com",
+    )
+MEMCACHED_PORT = int(os.environ.get("MEMCACHED_PORT", "11211"))
+
+# Toggle Memcached usage. Prefer Memcached; default to True in local development.
+USE_MEMCACHED = (
+    os.environ.get("USE_MEMCACHED", "True" if IS_LOCAL else "False").lower() == "true"
 )
-VALKEY_PORT = int(os.environ.get("VALKEY_PORT", "6379"))
-VALKEY_SSL = os.environ.get("VALKEY_SSL", "True").lower() == "true"
-
-# Temporarily disable Valkey cache due to VPC connectivity issues
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-#         "LOCATION": "unique-snowflake",
-#     },
-#     "session": {
-#         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-#         "LOCATION": "unique-snowflake-sessions",
-#     },
-# }
-
-# Original Valkey configuration (commented out for VPC troubleshooting)
-scheme = "rediss" if VALKEY_SSL else "redis"
 
 
-def check_valkey_connection(host, port, use_ssl):
-    """Enhanced connectivity check to Valkey with detailed diagnostics."""
+def check_memcached_connection(host, port):
+    """Connectivity check to Memcached with lightweight TCP test and version command."""
     try:
-        # Step 1: Basic socket connectivity test
-        logger.info(f"🔍 Testing socket connectivity to {host}:{port}")
-        sock = socket.create_connection((host, port), timeout=5)
-        logger.info(f"✅ Socket connection successful to {host}:{port}")
-
-        # Step 2: SSL wrapper if needed
-        if use_ssl:
-            logger.info("🔒 Wrapping socket with SSL")
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
-            sock = context.wrap_socket(sock, server_hostname=host)
-            logger.info("✅ SSL connection successful")
-
-        # Step 3: Test Redis protocol with PING command
-        logger.info("📡 Testing Redis protocol with PING command")
-        ping_command = b"PING\r\n"
-        sock.send(ping_command)
+        logger.info(f"🔍 Testing Memcached TCP connectivity to {host}:{port}")
+        sock = socket.create_connection((host, port), timeout=3)
+        # Send version command according to Memcached text protocol
+        sock.sendall(b"version\r\n")
         response = sock.recv(1024)
         sock.close()
-
-        if b"+PONG" in response:
-            logger.info(
-                f"✅ Valkey/Redis PING successful at {host}:{port} (SSL={use_ssl})"
-            )
+        if response and b"VERSION" in response.upper():
+            try:
+                resp_text = response.decode("utf-8", "ignore").strip()
+            except Exception:
+                resp_text = str(response)
+            logger.info(f"✅ Memcached responded: {resp_text}")
             return True
-        else:
-            logger.warning(f"⚠️ Unexpected Redis response: {response}")
-            return False
-
+        logger.warning(f"⚠️ Unexpected Memcached response: {response!r}")
+        return False
     except TimeoutError:
         logger.error(
-            f"❌ Connection timeout to {host}:{port} - Check VPC/security groups"
+            f"❌ Memcached connection timeout to {host}:{port} - Check VPC/Security Groups"
         )
         return False
     except socket.gaierror as e:
-        logger.error(f"❌ DNS resolution failed for {host}: {e}")
+        logger.error(f"❌ Memcached DNS resolution failed for {host}: {e}")
         return False
     except ConnectionRefusedError:
-        logger.error(f"❌ Connection refused to {host}:{port} - Service may be down")
-        return False
-    except ssl.SSLError as e:
-        logger.error(f"❌ SSL error connecting to {host}:{port}: {e}")
+        logger.error(
+            f"❌ Memcached connection refused to {host}:{port} - Service may be down"
+        )
         return False
     except Exception as e:
         logger.error(
-            f"❌ Valkey connection failed to {host}:{port}: {type(e).__name__}: {e}"
+            f"❌ Memcached connection failed to {host}:{port}: {type(e).__name__}: {e}"
         )
         return False
 
 
-# Configure Valkey/Redis cache with built-in resilience
-# Let django-redis handle connection failures gracefully instead of pre-checking
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "ssl_cert_reqs": None,
-                "retry_on_timeout": True,
-                "socket_connect_timeout": 5,
-                "socket_timeout": 5,
-            },
-            "SSL": VALKEY_SSL,
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "IGNORE_EXCEPTIONS": True,  # Gracefully handle connection failures
+# Configure cache backend with preference: Memcached -> LocMem
+# We'll perform a simple connectivity check and fall back to LocMem if needed
+if USE_MEMCACHED:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+            "LOCATION": f"{MEMCACHED_ENDPOINT}:{MEMCACHED_PORT}",
+            "KEY_PREFIX": "qu_security",
+            "TIMEOUT": 300,
         },
-        "KEY_PREFIX": "qu_security",
-        "TIMEOUT": 300,
-    },
-    "session": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{scheme}://{VALKEY_ENDPOINT}:{VALKEY_PORT}",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "ssl_cert_reqs": None,
-                "retry_on_timeout": True,
-                "socket_connect_timeout": 5,
-                "socket_timeout": 5,
-            },
-            "SSL": VALKEY_SSL,
-            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-            "IGNORE_EXCEPTIONS": True,  # Gracefully handle connection failures
+        "session": {
+            "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+            "LOCATION": f"{MEMCACHED_ENDPOINT}:{MEMCACHED_PORT}",
+            "KEY_PREFIX": "qu_security_session",
+            "TIMEOUT": 3600,
         },
-        "KEY_PREFIX": "qu_security_session",
-        "TIMEOUT": 3600,
-    },
-}
+    }
+    logger.info(f"✅ Using Memcached cache at {MEMCACHED_ENDPOINT}:{MEMCACHED_PORT}")
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "qu-security-default",
+            "TIMEOUT": 300,
+        },
+        "session": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "qu-security-sessions",
+            "TIMEOUT": 3600,
+        },
+    }
+    logger.info("✅ Using local in-memory cache backend (LocMemCache)")
 
-logger.info(
-    f"✅ Configured Valkey cache at {VALKEY_ENDPOINT}:{VALKEY_PORT} (SSL={VALKEY_SSL})"
-)
+# Log connectivity status for Memcached; label Local vs AWS Lambda for clarity
+if USE_MEMCACHED:
+    env_label = "AWS Lambda" if not IS_LOCAL else "Local"
+    ok = check_memcached_connection(MEMCACHED_ENDPOINT, MEMCACHED_PORT)
+    if ok:
+        logger.info(
+            f"✅ [{env_label}] Memcached connectivity OK to {MEMCACHED_ENDPOINT}:{MEMCACHED_PORT}"
+        )
+    else:
+        logger.error(
+            f"❌ [{env_label}] Memcached connectivity FAILED to {MEMCACHED_ENDPOINT}:{MEMCACHED_PORT}"
+        )
+        # Graceful fallback to LocMem so app/tests can still run without Memcached
+        CACHES = {
+            "default": {
+                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+                "LOCATION": "qu-security-default",
+                "TIMEOUT": 300,
+            },
+            "session": {
+                "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+                "LOCATION": "qu-security-sessions",
+                "TIMEOUT": 3600,
+            },
+        }
+        logger.warning(
+            "⚠️ Falling back to LocMemCache due to Memcached connectivity failure"
+        )
 
-# Use Valkey for sessions
+# Use cache backend for sessions (Memcached/LocMem)
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "session"
 

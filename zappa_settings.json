@@ -27,9 +27,9 @@
             "AWS_SQS_QUEUE_URL": "https://us-east-2.queue.amazonaws.com/221082186476/qu-security-tasks-dev",
             "AWS_SQS_REGION": "us-east-2",
             "AWS_SQS_DLQ_URL": "https://us-east-2.queue.amazonaws.com/221082186476/qu-security-tasks-dev-dlq",
-            "VALKEY_ENDPOINT": "qu-security-main-inu7dr.serverless.use2.cache.amazonaws.com",
-            "VALKEY_PORT": "6379",
-            "VALKEY_SSL": "True"
+            "USE_MEMCACHED": "True",
+            "MEMCACHED_ENDPOINT": "qu-security-cache.inu7dr.0001.use2.cache.amazonaws.com",
+            "MEMCACHED_PORT": "11211"
 
         },
         "vpc_config": {
@@ -80,9 +80,9 @@
             "AWS_SQS_QUEUE_URL": "https://us-east-2.queue.amazonaws.com/221082186476/qu-security-tasks-prod",
             "AWS_SQS_REGION": "us-east-2",
             "AWS_SQS_DLQ_URL": "https://us-east-2.queue.amazonaws.com/221082186476/qu-security-tasks-prod-dlq",
-            "VALKEY_ENDPOINT": "qu-security-main-inu7dr.serverless.use2.cache.amazonaws.com",
-            "VALKEY_PORT": "6379",
-            "VALKEY_SSL": "True"
+            "USE_MEMCACHED": "True",
+            "MEMCACHED_ENDPOINT": "qu-security-cache.inu7dr.0001.use2.cache.amazonaws.com",
+            "MEMCACHED_PORT": "11211"
         },
         "vpc_config": {
             "SubnetIds": ["subnet-01b7baf8b170c3d82", "subnet-07119d6325442c984", "subnet-0ae197b27f762cf16"],

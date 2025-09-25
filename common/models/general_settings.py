@@ -48,136 +48,61 @@ class GeneralSettings(SingletonModel, BaseModel):
             return f"Disconnected: {e}"
 
     @property
-    def valkey_status(self):
-        """Check the connectivity and type of the cache backend."""
+    def cache_status(self):
+        """Check the connectivity and type of the current cache backend."""
         try:
             cache_backend = settings.CACHES["default"]["BACKEND"]
-            if "redis" in cache_backend.lower() or "valkey" in cache_backend.lower():
-                cache = caches["default"]
-                try:
-                    # For django-redis, we can use the cache's get_client method
-                    if hasattr(cache, "get_client"):
-                        client = cache.get_client()
-                        if hasattr(client, "ping"):
-                            if client.ping():
-                                return "Connected (Valkey/Redis)"
-                            return "Disconnected: Ping failed (Valkey/Redis)"
-
-                    # Alternative approach: try to perform a simple cache operation
-                    test_key = "connectivity_test"
-                    cache.set(test_key, "test", 1)
-                    if cache.get(test_key) == "test":
-                        cache.delete(test_key)
-                        return "Connected (Valkey/Redis)"
-                    return "Disconnected: Cache operation failed (Valkey/Redis)"
-                except Exception as conn_e:
-                    return f"Disconnected: {conn_e} (Valkey/Redis)"
-            elif "locmem" in cache_backend.lower():
-                return "Active (In-Memory Cache)"
-            else:
-                return f"Active ({cache_backend})"
+            cache = caches["default"]
+            # Perform a simple set/get
+            test_key = "connectivity_test"
+            cache.set(test_key, "test", 1)
+            if cache.get(test_key) == "test":
+                cache.delete(test_key)
+                if "memcached" in cache_backend.lower():
+                    return "Connected (Memcached)"
+                elif "locmem" in cache_backend.lower():
+                    return "Active (In-Memory Cache)"
+                else:
+                    return f"Connected ({cache_backend})"
+            return f"Disconnected: Cache set/get failed ({cache_backend})"
         except Exception as e:
             return f"Error determining cache status: {e}"
 
     @property
-    def valkey_diagnostics(self):
-        """Detailed diagnostic information for Valkey connection."""
+    def cache_diagnostics(self):
+        """Diagnostic information for the active cache backend (Memcached/LocMem)."""
         try:
-            endpoint = getattr(settings, "VALKEY_ENDPOINT", "Not configured")
-            port = getattr(settings, "VALKEY_PORT", "Not configured")
-            ssl_enabled = getattr(settings, "VALKEY_SSL", "Not configured")
+            endpoint = getattr(settings, "MEMCACHED_ENDPOINT", "Not configured")
+            port = getattr(settings, "MEMCACHED_PORT", "Not configured")
+            backend = settings.CACHES["default"]["BACKEND"]
 
-            return (
-                f"Endpoint: {endpoint} | "
-                f"Port: {port} | "
-                f"SSL: {ssl_enabled} | "
-                f"Backend: {settings.CACHES['default']['BACKEND']}"
-            )
+            return f"Endpoint: {endpoint} | Port: {port} | Backend: {backend}"
         except Exception as e:
             return f"Error getting diagnostics: {e}"
 
     @property
     def cache_viewer(self):
-        """Display all keys and values in the Valkey cache."""
+        """Display selected keys and values in the cache (best-effort).
+
+        Note: Memcached does not support listing keys, so we check common
+        patterns used by the application (e.g., guards_rts:{id}).
+        """
         try:
             cache = caches["default"]
             cache_data = {}
 
-            # Try multiple approaches to get cache keys
-            try:
-                # Method 1: Try django-redis specific approach
-                if hasattr(cache, "get_client"):
-                    client = cache.get_client()
-                    if hasattr(client, "keys"):
-                        keys = client.keys("*")
-                        if keys:
-                            for key in keys:
-                                # Decode key if it's bytes
-                                if isinstance(key, bytes):
-                                    key = key.decode("utf-8")
-
-                                try:
-                                    value = cache.get(key)
-                                    # Format the value for display
-                                    if isinstance(value, dict | list | tuple):
-                                        cache_data[key] = json.dumps(value, indent=2)
-                                    else:
-                                        cache_data[key] = str(value)
-                                except Exception as e:
-                                    cache_data[key] = f"Error retrieving value: {e}"
-                    else:
-                        # Method 2: Try direct Redis connection
-                        import redis
-
-                        redis_client = client.get_connection_pool().connection_kwargs
-                        r = redis.Redis(**redis_client)
-                        keys = r.keys("*")
-                        if keys:
-                            for key in keys:
-                                if isinstance(key, bytes):
-                                    key = key.decode("utf-8")
-
-                                try:
-                                    value = cache.get(key)
-                                    if isinstance(value, dict | list | tuple):
-                                        cache_data[key] = json.dumps(value, indent=2)
-                                    else:
-                                        cache_data[key] = str(value)
-                                except Exception as e:
-                                    cache_data[key] = f"Error retrieving value: {e}"
-                else:
-                    # For backends that don't support key listing, try common patterns
-                    test_keys = []
-                    for i in range(1, 1000):  # Test guard IDs 1-999
-                        test_keys.append(f"guards_rts:{i}")
-
-                    for test_key in test_keys:
-                        try:
-                            value = cache.get(test_key)
-                            if value is not None:
-                                if isinstance(value, dict | list | tuple):
-                                    cache_data[test_key] = json.dumps(value, indent=2)
-                                else:
-                                    cache_data[test_key] = str(value)
-                        except Exception:
-                            print(f"Error retrieving value for key: {test_key}")
-                            continue
-
-            except ImportError:
-                # Redis not available, try fallback method
-                # Test known guard location keys
-                for i in range(1, 1000):
-                    test_key = f"guards_rts:{i}"
-                    try:
-                        value = cache.get(test_key)
-                        if value is not None:
-                            if isinstance(value, dict | list | tuple):
-                                cache_data[test_key] = json.dumps(value, indent=2)
-                            else:
-                                cache_data[test_key] = str(value)
-                    except Exception:
-                        print(f"Error retrieving value for key: {test_key}")
-                        continue
+            # Backends typically don't support listing; test common patterns
+            for i in range(1, 501):  # Check first 500 guard IDs
+                test_key = f"guards_rts:{i}"
+                try:
+                    value = cache.get(test_key)
+                    if value is not None:
+                        if isinstance(value, dict | list | tuple):
+                            cache_data[test_key] = json.dumps(value, indent=2)
+                        else:
+                            cache_data[test_key] = str(value)
+                except Exception:
+                    print(f"Error accessing cache key {test_key}")
 
             # Display results
             if not cache_data:
