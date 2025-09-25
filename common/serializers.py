@@ -11,7 +11,7 @@ class GeneralSettingsSerializer(serializers.ModelSerializer):
             "app_description",
             "api_page_size",
             "postgres_status",
-            "valkey_status",
-            "valkey_diagnostics",
+            "cache_status",
+            "cache_diagnostics",
         ]
         read_only_fields = fields

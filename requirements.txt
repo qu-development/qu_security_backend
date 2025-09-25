@@ -57,5 +57,4 @@ pytest-django==4.9.0
 model-bakery==1.20.1
 faker==37.5.3
 pbr
-django-redis==5.4.0
-redis==5.2.1
+pymemcache==4.0.0
