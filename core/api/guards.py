@@ -335,7 +335,7 @@ class GuardViewSet(
     )
     @action(detail=False, methods=["get"], url_path="cached-locations")
     def cached_locations(self, request):
-        """Get cached guard location data from Valkey"""
+        """Get cached guard location data from the configured cache backend"""
         try:
             guard_id = request.query_params.get("guard_id")
 

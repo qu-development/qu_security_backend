@@ -8,13 +8,13 @@ from .models import GeneralSettings
 class GeneralSettingsAdmin(SingletonModelAdmin):
     readonly_fields = (
         "postgres_status",
-        "valkey_status",
-        "valkey_diagnostics",
+        "cache_status",
+        "cache_diagnostics",
         "cache_viewer",
     )
     fieldsets = (
         (None, {"fields": ("app_name", "app_description", "api_page_size")}),
-        ("Connectivity Status", {"fields": ("postgres_status", "valkey_status")}),
-        ("Valkey Diagnostics", {"fields": ("valkey_diagnostics",)}),
+        ("Connectivity Status", {"fields": ("postgres_status", "cache_status")}),
+        ("Cache Diagnostics", {"fields": ("cache_diagnostics",)}),
         ("Cache Contents", {"fields": ("cache_viewer",)}),
     )
