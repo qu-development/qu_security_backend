@@ -4,6 +4,7 @@ from .guard import Guard as Guard
 from .guard_property_tariff import (
     GuardPropertyTariff as GuardPropertyTariff,
 )
+from .note import Note as Note
 from .property import Property as Property
 from .property_type_of_service import PropertyTypeOfService as PropertyTypeOfService
 from .service import Service as Service

@@ -3,6 +3,7 @@ from .auth import CustomTokenObtainPairSerializer, CustomTokenObtainPairView
 from .clients import ClientViewSet
 from .expenses import ExpenseViewSet
 from .guards import GuardViewSet
+from .notes import NoteViewSet
 from .properties import PropertyViewSet
 from .property_types import PropertyTypeOfServiceViewSet
 from .shifts import ShiftViewSet
@@ -19,6 +20,7 @@ __all__ = [
     "PropertyViewSet",
     "ShiftViewSet",
     "ExpenseViewSet",
+    "NoteViewSet",
     "PropertyTypeOfServiceViewSet",
     "GuardPropertyTariffViewSet",
     "WeaponViewSet",

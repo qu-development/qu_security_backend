@@ -10,8 +10,14 @@ from core.models import (
     Shift,
     Weapon,
 )
+from core.models import (
+    Note as Note,
+)
 
 from .guard import GuardAdmin
+from .note import (
+    NoteAdmin as NoteAdmin,
+)
 from .property import PropertyAdmin
 from .service import ServiceAdmin
 from .shift import ShiftAdmin

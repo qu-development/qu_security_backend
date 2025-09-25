@@ -7,6 +7,7 @@ from .api.auth import CustomTokenObtainPairView
 from .api.clients import ClientViewSet
 from .api.expenses import ExpenseViewSet
 from .api.guards import GuardViewSet
+from .api.notes import NoteViewSet
 from .api.properties import PropertyViewSet
 from .api.property_types import PropertyTypeOfServiceViewSet
 from .api.services import ServiceViewSet
@@ -26,6 +27,7 @@ router.register(r"properties", PropertyViewSet, basename="property")
 router.register(r"services", ServiceViewSet, basename="service")
 router.register(r"shifts", ShiftViewSet, basename="shift")
 router.register(r"expenses", ExpenseViewSet, basename="expense")
+router.register(r"notes", NoteViewSet, basename="note")
 router.register(
     r"property-types-of-service",
     PropertyTypeOfServiceViewSet,

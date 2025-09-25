@@ -13,6 +13,12 @@ from .guards import (
     GuardSerializer,
     GuardUpdateSerializer,
 )
+from .notes import (
+    NoteCreateSerializer,
+    NoteSerializer,
+    NoteSummarySerializer,
+    NoteUpdateSerializer,
+)
 from .properties import (
     PropertyDetailSerializer,
     PropertyGuardsShiftsSerializer,
@@ -55,6 +61,11 @@ __all__ = [
     "ClientDetailSerializer",
     "ClientCreateSerializer",
     "ClientUpdateSerializer",
+    # notes
+    "NoteSerializer",
+    "NoteCreateSerializer",
+    "NoteUpdateSerializer",
+    "NoteSummarySerializer",
     # property types
     "PropertyTypeOfServiceSerializer",
     # properties
