@@ -169,20 +169,21 @@ def test_users_search_by_username_and_name():
     # Arrange: list endpoint returns only staff/superusers
     admin = baker.make(User, is_superuser=True, is_staff=True)
 
+    # Use unique usernames to avoid conflicts with existing data
     baker.make(
         User,
-        username="alice",
+        username="alice_unique_test",
         first_name="Alice",
-        last_name="Liddell",
-        email="alice@example.com",
+        last_name="Liddell_Unique",
+        email="alice_unique@example.com",
         is_staff=True,
     )
     baker.make(
         User,
-        username="bob",
+        username="bob_unique_test",
         first_name="Bob",
-        last_name="Builder",
-        email="bob@example.com",
+        last_name="Builder_Unique",
+        email="bob_unique@example.com",
         is_staff=True,
     )
 
@@ -190,12 +191,12 @@ def test_users_search_by_username_and_name():
     api.force_authenticate(user=admin)
     url = reverse("core:user-list")
 
-    # By username substring
-    r = api.get(url, {"search": "ali"})
+    # By username substring (more specific)
+    r = api.get(url, {"search": "alice_unique"})
     usernames = {item["username"] for item in r.json()["results"]}
-    assert usernames == {"alice"}
+    assert usernames == {"alice_unique_test"}
 
-    # By last name
-    r = api.get(url, {"search": "Build"})
+    # By last name (more specific)
+    r = api.get(url, {"search": "Builder_Unique"})
     usernames = {item["username"] for item in r.json()["results"]}
-    assert usernames == {"bob"}
+    assert usernames == {"bob_unique_test"}
