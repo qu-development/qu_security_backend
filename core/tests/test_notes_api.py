@@ -37,14 +37,14 @@ class TestNoteModel:
         note = Note.objects.create(
             name="Related Note",
             amount=Decimal("75.25"),
-            client=client,
-            property_obj=property_obj,
+            clients=[client.id],
+            properties=[property_obj.id],
         )
 
         str_repr = str(note)
         assert "Related Note ($75.25)" in str_repr
-        assert "Client:" in str_repr
-        assert "Property:" in str_repr
+        assert "Clients: 1" in str_repr
+        assert "Properties: 1" in str_repr
 
     def test_amount_properties(self):
         """Test amount-related properties"""
@@ -74,18 +74,19 @@ class TestNoteModel:
 
         note = Note.objects.create(
             name="Multi-Relation Note",
-            client=client,
-            guard=guard,
-            property_obj=property_obj,
+            clients=[client.id],
+            guards=[guard.id],
+            properties=[property_obj.id],
         )
 
         related_entities = note.get_related_entities()
         assert len(related_entities) == 3
-
-        entity_types = [entity["type"] for entity in related_entities]
-        assert "client" in entity_types
-        assert "guard" in entity_types
-        assert "property" in entity_types
+        assert "clients" in related_entities
+        assert "guards" in related_entities
+        assert "properties" in related_entities
+        assert related_entities["clients"] == [client.id]
+        assert related_entities["guards"] == [guard.id]
+        assert related_entities["properties"] == [property_obj.id]
 
     def test_note_default_values(self):
         """Test default values for note"""
@@ -93,9 +94,9 @@ class TestNoteModel:
 
         assert note.description == ""
         assert note.amount == Decimal("0.00")
-        assert note.client is None
-        assert note.property_obj is None
-        assert note.guard is None
+        assert note.clients == []
+        assert note.properties == []
+        assert note.guards == []
 
 
 @pytest.mark.django_db
@@ -119,6 +120,36 @@ class TestNoteAPI:
         note = Note.objects.get(id=response.data["id"])
         assert note.name == "API Test Note"
         assert note.amount == Decimal("150.75")
+        assert note.created_by == admin_user  # Verify created_by is set
+
+    def test_created_by_field_in_response(self, api_client, admin_user):
+        """Test that created_by field is included in API responses"""
+        api_client.force_authenticate(user=admin_user)
+
+        # Create a note
+        url = reverse("core:note-list")
+        data = {
+            "name": "Created By Test Note",
+            "description": "Testing created_by field",
+            "amount": "50.00",
+        }
+
+        response = api_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "created_by" in response.data
+        assert response.data["created_by"] == admin_user.id
+
+        # Retrieve the note and verify created_by info
+        note_id = response.data["id"]
+        url = reverse("core:note-detail", kwargs={"pk": note_id})
+        response = api_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "created_by" in response.data
+        assert "created_by_name" in response.data
+        assert response.data["created_by"] == admin_user.id
+        expected_name = admin_user.get_full_name() or admin_user.username
+        assert response.data["created_by_name"] == expected_name
 
     def test_list_notes(self, api_client, admin_user):
         """Test listing notes via API"""
@@ -187,18 +218,18 @@ class TestNoteAPI:
             "name": "Related Note",
             "description": "Note with relations",
             "amount": "75.00",
-            "client": client.id,
-            "property_obj": property_obj.id,
-            "guard": guard.id,
+            "clients": [client.id],
+            "properties": [property_obj.id],
+            "guards": [guard.id],
         }
 
         response = api_client.post(url, data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
 
         note = Note.objects.get(id=response.data["id"])
-        assert note.client == client
-        assert note.property_obj == property_obj
-        assert note.guard == guard
+        assert client.id in note.clients
+        assert property_obj.id in note.properties
+        assert guard.id in note.guards
 
     def test_note_filtering(self, api_client, admin_user):
         """Test filtering notes using search functionality"""
@@ -311,7 +342,7 @@ class TestNotePermissions:
 
         # Create notes for this client and another
         client_note = Note.objects.create(
-            name="Client Note", client=client, amount=Decimal("100.00")
+            name="Client Note", clients=[client.id], amount=Decimal("100.00")
         )
 
         other_client = Client.objects.create(
@@ -319,7 +350,7 @@ class TestNotePermissions:
             phone="999999999",
         )
         Note.objects.create(
-            name="Other Client Note", client=other_client, amount=Decimal("50.00")
+            name="Other Client Note", clients=[other_client.id], amount=Decimal("50.00")
         )
 
         api_client.force_authenticate(user=client.user)
@@ -337,7 +368,7 @@ class TestNotePermissions:
 
         # Create note for this guard
         guard_note = Note.objects.create(
-            name="Guard Note", guard=guard, amount=Decimal("75.00")
+            name="Guard Note", guards=[guard.id], amount=Decimal("75.00")
         )
 
         # Create note for another guard
@@ -346,7 +377,7 @@ class TestNotePermissions:
             phone="888888888",
         )
         Note.objects.create(
-            name="Other Guard Note", guard=other_guard, amount=Decimal("25.00")
+            name="Other Guard Note", guards=[other_guard.id], amount=Decimal("25.00")
         )
 
         api_client.force_authenticate(user=guard.user)
@@ -372,6 +403,40 @@ class TestNotePermissions:
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data["results"]) == 0
+
+    def test_duplicate_note_sets_created_by(self, api_client, admin_user):
+        """Test that duplicating a note sets created_by to current user"""
+        # Create a different user who will be the original creator
+        original_user = User.objects.create_user(
+            username="original_creator", password="pass123"
+        )
+
+        # Create a note with original user as creator
+        original_note = Note.objects.create(
+            name="Original Note",
+            description="Original description",
+            amount=Decimal("100.00"),
+            created_by=original_user,
+        )
+
+        # Authenticate as admin user (different from original creator)
+        api_client.force_authenticate(user=admin_user)
+
+        # Duplicate the note
+        url = reverse("core:note-duplicate", kwargs={"pk": original_note.pk})
+        response = api_client.post(url, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+        # Verify the duplicate note has admin_user as created_by
+        duplicated_note = Note.objects.get(id=response.data["id"])
+        assert duplicated_note.created_by == admin_user
+        assert duplicated_note.name == "Original Note (Copy)"
+        assert duplicated_note.amount == Decimal("100.00")
+
+        # Verify original note is unchanged
+        original_note.refresh_from_db()
+        assert original_note.created_by == original_user
 
 
 @pytest.mark.django_db

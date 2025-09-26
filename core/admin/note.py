@@ -5,6 +5,43 @@ from django.utils.translation import gettext_lazy as _
 from core.models import Note
 
 
+# Custom list filters
+class AmountRangeFilter(admin.SimpleListFilter):
+    """Filter notes by amount ranges"""
+
+    title = _("Amount Range")
+    parameter_name = "amount_range"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("positive", _("Income (> $0)")),
+            ("negative", _("Expense (< $0)")),
+            ("zero", _("Neutral (= $0)")),
+            ("small_positive", _("Small Income ($0-$100)")),
+            ("large_positive", _("Large Income (> $100)")),
+            ("small_negative", _("Small Expense ($0 to -$100)")),
+            ("large_negative", _("Large Expense (< -$100)")),
+        )
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "positive":
+            return queryset.filter(amount__gt=0)
+        elif value == "negative":
+            return queryset.filter(amount__lt=0)
+        elif value == "zero":
+            return queryset.filter(amount=0)
+        elif value == "small_positive":
+            return queryset.filter(amount__gt=0, amount__lte=100)
+        elif value == "large_positive":
+            return queryset.filter(amount__gt=100)
+        elif value == "small_negative":
+            return queryset.filter(amount__lt=0, amount__gte=-100)
+        elif value == "large_negative":
+            return queryset.filter(amount__lt=-100)
+        return queryset
+
+
 @admin.register(Note)
 class NoteAdmin(admin.ModelAdmin):
     """Admin interface for Note model"""
@@ -14,6 +51,7 @@ class NoteAdmin(admin.ModelAdmin):
         "amount_display",
         "amount_type_display",
         "related_entities_display",
+        "created_by",
         "created_at",
         "is_active",
     ]
@@ -22,28 +60,24 @@ class NoteAdmin(admin.ModelAdmin):
         "is_active",
         "created_at",
         "updated_at",
-        "client",
-        "property_obj",
-        "guard",
-        "service",
+        "created_by",
+        AmountRangeFilter,
     ]
 
     search_fields = [
         "name",
         "description",
-        "client__user__username",
-        "client__user__email",
-        "property_obj__name",
-        "property_obj__address",
-        "guard__user__username",
-        "guard__user__email",
-        "service__name",
+        "created_by__username",
+        "created_by__first_name",
+        "created_by__last_name",
+        "created_by__email",
     ]
 
     readonly_fields = [
         "id",
         "created_at",
         "updated_at",
+        "created_by",
         "amount_type",
         "is_income",
         "is_expense",
@@ -60,15 +94,14 @@ class NoteAdmin(admin.ModelAdmin):
             _("Relations"),
             {
                 "fields": (
-                    "client",
-                    "property_obj",
-                    "guard",
-                    "service",
-                    "shift",
-                    "expense",
-                    "weapon",
-                    "guard_property_tariff",
-                    "property_type_of_service",
+                    "clients",
+                    "properties",
+                    "guards",
+                    "services",
+                    "shifts",
+                    "weapons",
+                    "type_of_services",
+                    "viewed_by_ids",
                 ),
                 "classes": ("collapse",),
             },
@@ -88,7 +121,10 @@ class NoteAdmin(admin.ModelAdmin):
         ),
         (
             _("Timestamps"),
-            {"fields": ("id", "created_at", "updated_at"), "classes": ("collapse",)},
+            {
+                "fields": ("id", "created_by", "created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
         ),
     )
 
@@ -143,22 +179,32 @@ class NoteAdmin(admin.ModelAdmin):
         if not entities:
             return format_html('<span style="color: gray;">No relations</span>')
 
-        count = len(entities)
-        entities_str = ", ".join([entity["type"].title() for entity in entities[:3]])
-        if len(entities) > 3:
-            entities_str += f", +{len(entities) - 3} more"
+        total_count = sum(len(ids) for ids in entities.values())
+        if total_count == 0:
+            return format_html('<span style="color: gray;">No relations</span>')
+
+        # Show summary of relation types with counts
+        summary_parts = []
+        for relation_type, ids in entities.items():
+            if ids:
+                summary_parts.append(f"{relation_type}: {len(ids)}")
+
+        summary_str = ", ".join(summary_parts[:3])
+        if len(summary_parts) > 3:
+            summary_str += f", +{len(summary_parts) - 3} more"
 
         return format_html(
-            '<span title="{}">{} relation{}</span>',
-            entities_str,
-            count,
-            "s" if count != 1 else "",
+            '<span title="{}">{} total relation{}</span>',
+            summary_str,
+            total_count,
+            "s" if total_count != 1 else "",
         )
 
     @admin.display(description=_("Related Entities Count"))
     def related_entities_count(self, obj):
         """Count of related entities (read-only field)"""
-        return len(obj.get_related_entities())
+        entities = obj.get_related_entities()
+        return sum(len(ids) for ids in entities.values())
 
     @admin.display(description=_("Related Entities Summary"))
     def related_entities_summary(self, obj):
@@ -168,8 +214,11 @@ class NoteAdmin(admin.ModelAdmin):
             return _("No related entities")
 
         summary_lines = []
-        for entity in entities:
-            summary_lines.append(f"• {entity['type'].title()}: {entity['str']}")
+        for relation_type, ids in entities.items():
+            if ids:
+                summary_lines.append(
+                    f"• {relation_type.replace('_', ' ').title()}: {len(ids)} item(s) - IDs: {ids}"
+                )
 
         return format_html("<br>".join(summary_lines))
 
@@ -201,15 +250,17 @@ class NoteAdmin(admin.ModelAdmin):
                 name=f"{note.name} (Copy)",
                 description=note.description,
                 amount=note.amount,
-                client=note.client,
-                property_obj=note.property_obj,
-                guard=note.guard,
-                service=note.service,
-                shift=note.shift,
-                expense=note.expense,
-                weapon=note.weapon,
-                guard_property_tariff=note.guard_property_tariff,
-                property_type_of_service=note.property_type_of_service,
+                clients=note.clients.copy() if note.clients else [],
+                properties=note.properties.copy() if note.properties else [],
+                guards=note.guards.copy() if note.guards else [],
+                services=note.services.copy() if note.services else [],
+                shifts=note.shifts.copy() if note.shifts else [],
+                weapons=note.weapons.copy() if note.weapons else [],
+                type_of_services=note.type_of_services.copy()
+                if note.type_of_services
+                else [],
+                viewed_by_ids=[],  # Reset viewed_by for duplicated note
+                created_by=request.user,  # Set the current user as creator
             )
             duplicated_count += 1
 
@@ -217,39 +268,3 @@ class NoteAdmin(admin.ModelAdmin):
             request,
             f"{duplicated_count} note(s) were successfully duplicated.",
         )
-
-    # Custom list filters
-    class AmountRangeFilter(admin.SimpleListFilter):
-        """Filter notes by amount ranges"""
-
-        title = _("Amount Range")
-        parameter_name = "amount_range"
-
-        def lookups(self, request, model_admin):
-            return (
-                ("positive", _("Income (> $0)")),
-                ("negative", _("Expense (< $0)")),
-                ("zero", _("Neutral (= $0)")),
-                ("small_positive", _("Small Income ($0-$100)")),
-                ("large_positive", _("Large Income (> $100)")),
-                ("small_negative", _("Small Expense ($0 to -$100)")),
-                ("large_negative", _("Large Expense (< -$100)")),
-            )
-
-        def queryset(self, request, queryset):
-            value = self.value()
-            if value == "positive":
-                return queryset.filter(amount__gt=0)
-            elif value == "negative":
-                return queryset.filter(amount__lt=0)
-            elif value == "zero":
-                return queryset.filter(amount=0)
-            elif value == "small_positive":
-                return queryset.filter(amount__gt=0, amount__lte=100)
-            elif value == "large_positive":
-                return queryset.filter(amount__gt=100)
-            elif value == "small_negative":
-                return queryset.filter(amount__lt=0, amount__gte=-100)
-            elif value == "large_negative":
-                return queryset.filter(amount__lt=-100)
-            return queryset

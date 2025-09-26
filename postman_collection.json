@@ -1,0 +1,1464 @@
+{
+  "info": {
+    "name": "QU Security API",
+    "description": "Complete API collection for QU Security Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Set base URL if not already set",
+          "if (!pm.variables.get('base_url')) {",
+          "    pm.variables.set('base_url', 'http://localhost:8000');",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login", ""]
+            }
+          },
+          "response": [
+            {
+              "name": "Login Response Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/auth/login/",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "auth", "login", ""]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"refresh\": \"eyJ0eXAiOiJKV1QiLCJhbGci...\",\n  \"access\": \"eyJ0eXAiOiJKV1QiLCJhbGci...\"\n}",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', responseJson.access);",
+                  "    pm.collectionVariables.set('refresh_token', responseJson.refresh);",
+                  "    console.log('Tokens saved successfully');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "refresh", ""]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const responseJson = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', responseJson.access);",
+                  "    console.log('Access token refreshed successfully');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ""],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "ordering",
+                  "value": "-date_joined",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@example.com\",\n    \"password\": \"testpass123\",\n    \"password_confirm\": \"testpass123\",\n    \"first_name\": \"Test\",\n    \"last_name\": \"User\",\n    \"is_active\": true,\n    \"is_staff\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ""]
+            }
+          },
+          "response": [
+            {
+              "name": "Create User Response Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@example.com\",\n    \"password\": \"testpass123\",\n    \"password_confirm\": \"testpass123\",\n    \"first_name\": \"Test\",\n    \"last_name\": \"User\",\n    \"is_active\": true,\n    \"is_staff\": false\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/users/",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "users", ""]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 2,\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"is_active\": true,\n  \"is_staff\": false,\n  \"date_joined\": \"2025-09-25T12:00:00Z\"\n}",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"first_name\": \"Updated\",\n    \"last_name\": \"Name\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "item": [
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/clients/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "clients", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"client1\",\n    \"email\": \"client@example.com\",\n    \"password\": \"clientpass123\",\n    \"first_name\": \"Client\",\n    \"last_name\": \"Test\",\n    \"phone\": \"1234567890\",\n    \"balance\": \"100.00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/clients/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "clients", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Client",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/clients/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "clients", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"phone\": \"0987654321\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/clients/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "clients", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Guards",
+      "item": [
+        {
+          "name": "List Guards",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/guards/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "guards", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Guard",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"guard1\",\n    \"email\": \"guard@example.com\",\n    \"password\": \"guardpass123\",\n    \"first_name\": \"Guard\",\n    \"last_name\": \"Test\",\n    \"phone\": \"1234567890\",\n    \"ssn\": \"123-45-6789\",\n    \"address\": \"123 Main St\",\n    \"birth_date\": \"1990-01-01\",\n    \"is_armed\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/guards/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "guards", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Guard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/guards/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "guards", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Guard",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"is_armed\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/guards/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "guards", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Properties",
+      "item": [
+        {
+          "name": "List Properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/properties/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "properties", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Property",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test Property\",\n    \"address\": \"123 Property St\",\n    \"alias\": \"Test Prop\",\n    \"description\": \"A test property\",\n    \"owner\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/properties/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "properties", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Property",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/properties/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "properties", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Property",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/properties/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "properties", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "item": [
+        {
+          "name": "List Services",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/services/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "services", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Service",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Security Service\",\n    \"property\": 1,\n    \"guard\": 1,\n    \"rate\": \"25.00\",\n    \"monthly_budget\": \"2000.00\",\n    \"start_date\": \"2025-01-01\",\n    \"end_date\": \"2025-12-31\",\n    \"weekly\": [1, 2, 3, 4, 5],\n    \"start_time\": \"08:00:00\",\n    \"end_time\": \"16:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/services/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "services", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Service",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/services/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "services", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Service",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"rate\": \"30.00\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/services/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "services", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Service Shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/services/:id/shifts/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "services", ":id", "shifts", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Services by Property",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/services/by-property/:property_id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "services", "by-property", ":property_id", ""],
+              "variable": [
+                {
+                  "key": "property_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Services by Guard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/services/by-guard/:guard_id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "services", "by-guard", ":guard_id", ""],
+              "variable": [
+                {
+                  "key": "guard_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Shifts",
+      "item": [
+        {
+          "name": "List Shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shifts/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shifts", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Shift",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"service\": 1,\n    \"guard\": 1,\n    \"property\": 1,\n    \"start_time\": \"2025-01-01T08:00:00Z\",\n    \"end_time\": \"2025-01-01T16:00:00Z\",\n    \"status\": \"scheduled\",\n    \"notes\": \"Regular shift\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shifts/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shifts", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Shift",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/shifts/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shifts", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Shift",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"completed\",\n    \"notes\": \"Shift completed successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/shifts/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "shifts", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notes",
+      "item": [
+        {
+          "name": "List Notes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notes/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notes", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test Note\",\n    \"description\": \"This is a test note\",\n    \"amount\": 100.50,\n    \"clients\": [1],\n    \"properties\": [1],\n    \"guards\": [],\n    \"services\": [],\n    \"shifts\": [],\n    \"weapons\": [],\n    \"type_of_services\": [],\n    \"viewed_by_ids\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notes/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notes", ""]
+            }
+          },
+          "response": [
+            {
+              "name": "Create Note Response Example",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Test Note\",\n    \"description\": \"This is a test note\",\n    \"amount\": \"100.50\",\n    \"client\": 1,\n    \"property_obj\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/notes/",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "notes", ""]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 1,\n  \"name\": \"Test Note\",\n  \"description\": \"This is a test note\",\n  \"amount\": 100.50,\n  \"clients\": [1],\n  \"properties\": [1],\n  \"guards\": [],\n  \"services\": [],\n  \"shifts\": [],\n  \"weapons\": [],\n  \"type_of_services\": [],\n  \"viewed_by_ids\": [],\n  \"created_by\": 1,\n  \"created_by_name\": \"admin\",\n  \"created_at\": \"2025-09-26T12:00:00Z\",\n  \"amount_type\": \"Income\",\n  \"is_income\": true,\n  \"is_expense\": false\n}",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Get Note",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notes/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notes", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Note",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"description\": \"Updated note description\",\n    \"amount\": \"150.75\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notes/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notes", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Note",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notes/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notes", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Duplicate Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Duplicated Note\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/notes/:id/duplicate/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notes", ":id", "duplicate", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Notes Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notes/statistics/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notes", "statistics", ""]
+            }
+          }
+        },
+        {
+          "name": "Notes Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notes/summary/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notes", "summary", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Expenses",
+      "item": [
+        {
+          "name": "List Expenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/expenses/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "expenses", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"description\": \"Office supplies\",\n    \"amount\": \"50.00\",\n    \"guard\": 1,\n    \"property\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/expenses/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "expenses", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Expense",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/expenses/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "expenses", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Weapons",
+      "item": [
+        {
+          "name": "List Weapons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/weapons/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "weapons", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Weapon",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"guard\": 1,\n    \"serial_number\": \"W123456789\",\n    \"weapon_type\": \"pistol\",\n    \"brand\": \"Glock\",\n    \"model\": \"17\",\n    \"caliber\": \"9mm\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/weapons/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "weapons", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Weapon",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/weapons/:id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "weapons", ":id", ""],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Guard Property Tariffs",
+      "item": [
+        {
+          "name": "List Tariffs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/guard-property-tariffs/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "guard-property-tariffs", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Tariff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"guard\": 1,\n    \"property\": 1,\n    \"hourly_rate\": \"25.00\",\n    \"effective_date\": \"2025-01-01\",\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/guard-property-tariffs/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "guard-property-tariffs", ""]
+            }
+          }
+        },
+        {
+          "name": "Tariffs by Guard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/guard-property-tariffs/by-guard/:guard_id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "guard-property-tariffs", "by-guard", ":guard_id", ""],
+              "variable": [
+                {
+                  "key": "guard_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Tariffs by Property",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/guard-property-tariffs/by-property/:property_id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "guard-property-tariffs", "by-property", ":property_id", ""],
+              "variable": [
+                {
+                  "key": "property_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Property Types of Service",
+      "item": [
+        {
+          "name": "List Property Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/property-types-of-service/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "property-types-of-service", ""]
+            }
+          }
+        },
+        {
+          "name": "Create Property Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Residential Security\",\n    \"description\": \"Security services for residential properties\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/property-types-of-service/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "property-types-of-service", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mobile API",
+      "item": [
+        {
+          "name": "Mobile Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "your-api-key"
+              },
+              {
+                "key": "X-Guard-ID",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/mobile/data/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "mobile", "data", ""]
+            }
+          }
+        },
+        {
+          "name": "List Guard Reports",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "your-api-key"
+              },
+              {
+                "key": "X-Guard-ID",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/mobile/guard-reports/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "mobile", "guard-reports", ""],
+              "query": [
+                {
+                  "key": "guard",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "date_from",
+                  "value": "2025-01-01T00:00:00Z",
+                  "disabled": true
+                },
+                {
+                  "key": "date_to",
+                  "value": "2025-12-31T23:59:59Z",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Guard Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "your-api-key"
+              },
+              {
+                "key": "X-Guard-ID",
+                "value": "1"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "guard",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "note",
+                  "value": "Security report from mobile app",
+                  "type": "text"
+                },
+                {
+                  "key": "report_datetime",
+                  "value": "2025-01-01T12:00:00Z",
+                  "type": "text"
+                },
+                {
+                  "key": "latitude",
+                  "value": "40.7128",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "longitude",
+                  "value": "-74.0060",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/mobile/guard-reports/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "mobile", "guard-reports", ""]
+            }
+          }
+        },
+        {
+          "name": "Reports by Guard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-KEY",
+                "value": "your-api-key"
+              },
+              {
+                "key": "X-Guard-ID",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/mobile/guard-reports/by-guard/:guard_id/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "mobile", "guard-reports", "by-guard", ":guard_id", ""],
+              "variable": [
+                {
+                  "key": "guard_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Permissions",
+      "item": [
+        {
+          "name": "Assign User Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user_id\": 1,\n    \"role\": \"manager\",\n    \"reason\": \"Promoting to manager role\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/admin/assign_user_role/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "permissions", "admin", "assign_user_role", ""]
+            }
+          }
+        },
+        {
+          "name": "Grant Property Access",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user_id\": 1,\n    \"property_id\": 1,\n    \"access_type\": \"view\",\n    \"reason\": \"Granting view access to property\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/admin/grant_property_access/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "permissions", "admin", "grant_property_access", ""]
+            }
+          }
+        },
+        {
+          "name": "Revoke Property Access",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user_id\": 1,\n    \"property_id\": 1,\n    \"reason\": \"Removing access to property\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/admin/revoke_property_access/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "permissions", "admin", "revoke_property_access", ""]
+            }
+          }
+        },
+        {
+          "name": "User Permissions Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/admin/user_permissions_summary/?user_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "permissions", "admin", "user_permissions_summary", ""],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Common",
+      "item": [
+        {
+          "name": "General Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/common/general-settings/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "common", "general-settings", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/health/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "health", ""]
+        }
+      }
+    },
+    {
+      "name": "JWT Demo",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/demo/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "demo", ""]
+        }
+      }
+    }
+  ]
+}

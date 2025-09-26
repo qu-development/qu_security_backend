@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from django.contrib.auth.models import User
+from django.contrib.postgres.fields import ArrayField
 from django.core.validators import DecimalValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -33,97 +35,92 @@ class Note(BaseModel):
             "Financial amount - can be positive (income) or negative (expense)"
         ),
         validators=[DecimalValidator(max_digits=12, decimal_places=2)],
-    )
-
-    # Relations to all core models (all optional/nullable)
-    client = models.ForeignKey(
-        "Client",
-        on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Client"),
         null=True,
         blank=True,
-        help_text=_("Associated client"),
     )
 
-    property_obj = models.ForeignKey(
-        "Property",
-        on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Property"),
-        null=True,
+    # Array fields for optimized relations (store IDs as integer arrays)
+    clients = ArrayField(
+        models.PositiveIntegerField(),
+        size=None,
+        default=list,
+        verbose_name=_("Clients"),
+        help_text=_("Array of client IDs associated with this note"),
         blank=True,
-        help_text=_("Associated property"),
     )
 
-    guard = models.ForeignKey(
-        "Guard",
-        on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Guard"),
-        null=True,
+    properties = ArrayField(
+        models.PositiveIntegerField(),
+        size=None,
+        default=list,
+        verbose_name=_("Properties"),
+        help_text=_("Array of property IDs associated with this note"),
         blank=True,
-        help_text=_("Associated guard"),
     )
 
-    service = models.ForeignKey(
-        "Service",
-        on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Service"),
-        null=True,
+    guards = ArrayField(
+        models.PositiveIntegerField(),
+        size=None,
+        default=list,
+        verbose_name=_("Guards"),
+        help_text=_("Array of guard IDs associated with this note"),
         blank=True,
-        help_text=_("Associated service"),
     )
 
-    shift = models.ForeignKey(
-        "Shift",
-        on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Shift"),
-        null=True,
+    services = ArrayField(
+        models.PositiveIntegerField(),
+        size=None,
+        default=list,
+        verbose_name=_("Services"),
+        help_text=_("Array of service IDs associated with this note"),
         blank=True,
-        help_text=_("Associated shift"),
     )
 
-    expense = models.ForeignKey(
-        "Expense",
-        on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Expense"),
-        null=True,
+    shifts = ArrayField(
+        models.PositiveIntegerField(),
+        size=None,
+        default=list,
+        verbose_name=_("Shifts"),
+        help_text=_("Array of shift IDs associated with this note"),
         blank=True,
-        help_text=_("Associated expense"),
     )
 
-    weapon = models.ForeignKey(
-        "Weapon",
-        on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Weapon"),
-        null=True,
+    weapons = ArrayField(
+        models.PositiveIntegerField(),
+        size=None,
+        default=list,
+        verbose_name=_("Weapons"),
+        help_text=_("Array of weapon IDs associated with this note"),
         blank=True,
-        help_text=_("Associated weapon"),
     )
 
-    guard_property_tariff = models.ForeignKey(
-        "GuardPropertyTariff",
-        on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Guard Property Tariff"),
-        null=True,
+    type_of_services = ArrayField(
+        models.PositiveIntegerField(),
+        size=None,
+        default=list,
+        verbose_name=_("Type of Services"),
+        help_text=_("Array of property type of service IDs associated with this note"),
         blank=True,
-        help_text=_("Associated guard property tariff"),
     )
 
-    property_type_of_service = models.ForeignKey(
-        "PropertyTypeOfService",
+    viewed_by_ids = ArrayField(
+        models.PositiveIntegerField(),
+        size=None,
+        default=list,
+        verbose_name=_("Viewed by"),
+        help_text=_("Array of user IDs who have viewed this note"),
+        blank=True,
+    )
+
+    # User who created this note
+    created_by = models.ForeignKey(
+        User,
         on_delete=models.SET_NULL,
-        related_name="notes",
-        verbose_name=_("Property Type Of Service"),
+        related_name="created_notes",
+        verbose_name=_("Created by"),
         null=True,
         blank=True,
-        help_text=_("Associated property type of service"),
+        help_text=_("User who created this note"),
     )
 
     class Meta:
@@ -132,37 +129,31 @@ class Note(BaseModel):
         ordering = ["-created_at"]  # Most recent first
         indexes = [
             models.Index(fields=["name"]),
-            models.Index(fields=["amount"]),
             models.Index(fields=["created_at"]),
-            models.Index(fields=["client", "property_obj"]),
+            models.Index(fields=["created_by"]),
         ]
 
     def __str__(self):
         related_info = []
-
-        # Build related info string
-        if self.client:
-            related_info.append(f"Client: {self.client}")
-        if self.property_obj:
-            related_info.append(f"Property: {self.property_obj}")
-        if self.guard:
-            related_info.append(f"Guard: {self.guard}")
-        if self.service:
-            related_info.append(f"Service: {self.service}")
-        if self.shift:
-            related_info.append(f"Shift: {self.shift}")
-        if self.expense:
-            related_info.append(f"Expense: {self.expense}")
-        if self.weapon:
-            related_info.append(f"Weapon: {self.weapon}")
-        if self.guard_property_tariff:
-            related_info.append(f"Tariff: {self.guard_property_tariff}")
-        if self.property_type_of_service:
-            related_info.append(f"Property Type: {self.property_type_of_service}")
-
-        related_str = " | ".join(related_info) if related_info else "No relations"
         amount_str = f"${self.amount:,.2f}" if self.amount else "$0.00"
 
+        # Build related info string from arrays
+        if self.clients:
+            related_info.append(f"Clients: {len(self.clients)}")
+        if self.properties:
+            related_info.append(f"Properties: {len(self.properties)}")
+        if self.guards:
+            related_info.append(f"Guards: {len(self.guards)}")
+        if self.services:
+            related_info.append(f"Services: {len(self.services)}")
+        if self.shifts:
+            related_info.append(f"Shifts: {len(self.shifts)}")
+        if self.weapons:
+            related_info.append(f"Weapons: {len(self.weapons)}")
+        if self.type_of_services:
+            related_info.append(f"Type of Services: {len(self.type_of_services)}")
+
+        related_str = " | ".join(related_info) if related_info else "No relations"
         return f"{self.name} ({amount_str}) - {related_str}"
 
     @property
@@ -186,28 +177,24 @@ class Note(BaseModel):
             return _("Neutral")
 
     def get_related_entities(self):
-        """Returns a list of all related entities"""
-        entities = []
-        relations = [
-            ("client", self.client),
-            ("property", self.property_obj),
-            ("guard", self.guard),
-            ("service", self.service),
-            ("shift", self.shift),
-            ("expense", self.expense),
-            ("weapon", self.weapon),
-            ("guard_property_tariff", self.guard_property_tariff),
-            ("property_type_of_service", self.property_type_of_service),
-        ]
+        """Returns a list of all related entity IDs organized by type"""
+        entities = {}
 
-        for relation_name, relation_obj in relations:
-            if relation_obj:
-                entities.append(
-                    {
-                        "type": relation_name,
-                        "id": relation_obj.id,
-                        "str": str(relation_obj),
-                    }
-                )
+        if self.clients:
+            entities["clients"] = self.clients
+        if self.properties:
+            entities["properties"] = self.properties
+        if self.guards:
+            entities["guards"] = self.guards
+        if self.services:
+            entities["services"] = self.services
+        if self.shifts:
+            entities["shifts"] = self.shifts
+        if self.weapons:
+            entities["weapons"] = self.weapons
+        if self.type_of_services:
+            entities["type_of_services"] = self.type_of_services
+        if self.viewed_by_ids:
+            entities["viewed_by_ids"] = self.viewed_by_ids
 
         return entities

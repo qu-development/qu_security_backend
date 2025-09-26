@@ -25,17 +25,7 @@ class NoteViewSet(ModelViewSet):
     financial information (positive/negative amounts).
     """
 
-    queryset = Note.objects.select_related(
-        "client__user",
-        "property_obj__owner__user",
-        "guard__user",
-        "service",
-        "shift",
-        "expense",
-        "weapon",
-        "guard_property_tariff",
-        "property_type_of_service",
-    ).prefetch_related("client__properties", "guard__shifts", "property_obj__shifts")
+    queryset = Note.objects.select_related("created_by").order_by("-created_at")
 
     permission_classes = [IsAuthenticated]
     pagination_class = SettingsPageNumberPagination
@@ -68,21 +58,41 @@ class NoteViewSet(ModelViewSet):
 
             # Include notes related to user as client
             if hasattr(user, "client"):
-                user_filter |= Q(client_id=user.client.id)
-                # Include notes for user's properties
-                user_filter |= Q(property_obj__owner_id=user.client.id)
+                user_filter |= Q(clients__contains=[user.client.id])
+                # Include notes for user's properties (get properties owned by user's client)
+                from core.models import Property
+
+                user_properties = Property.objects.filter(
+                    owner_id=user.client.id
+                ).values_list("id", flat=True)
+                if user_properties:
+                    user_filter |= Q(properties__overlap=list(user_properties))
 
             # Include notes related to user as guard
             if hasattr(user, "guard"):
-                user_filter |= Q(guard_id=user.guard.id)
+                user_filter |= Q(guards__contains=[user.guard.id])
                 # Include notes for guard's services and shifts
-                user_filter |= Q(service__guard_id=user.guard.id)
-                user_filter |= Q(shift__guard_id=user.guard.id)
+                from core.models import Service, Shift
+
+                user_services = Service.objects.filter(
+                    guard_id=user.guard.id
+                ).values_list("id", flat=True)
+                if user_services:
+                    user_filter |= Q(services__overlap=list(user_services))
+                user_shifts = Shift.objects.filter(guard_id=user.guard.id).values_list(
+                    "id", flat=True
+                )
+                if user_shifts:
+                    user_filter |= Q(shifts__overlap=list(user_shifts))
 
             # Apply filter if any conditions exist
             queryset = queryset.filter(user_filter) if user_filter else queryset.none()
 
         return queryset
+
+    def perform_create(self, serializer):
+        """Set created_by field when creating a note"""
+        serializer.save(created_by=self.request.user)
 
     def perform_destroy(self, instance):
         """Perform soft delete by setting is_active=False"""
@@ -132,24 +142,21 @@ class NoteViewSet(ModelViewSet):
         expense_count = queryset.filter(amount__lt=0).count()
         neutral_count = queryset.filter(amount=0).count()
 
-        # Count by relations
+        # Count by relations (now using array fields)
         relations_stats = {}
-        relation_fields = [
-            "client",
-            "property_obj",
-            "guard",
-            "service",
-            "shift",
-            "expense",
-            "weapon",
-            "guard_property_tariff",
-            "property_type_of_service",
+        array_fields = [
+            "clients",
+            "properties",
+            "guards",
+            "services",
+            "shifts",
+            "weapons",
+            "type_of_services",
         ]
 
-        for field in relation_fields:
-            relations_stats[f"{field}_count"] = queryset.filter(
-                **{f"{field}__isnull": False}
-            ).count()
+        for field in array_fields:
+            # Count notes that have non-empty arrays for each field
+            relations_stats[f"{field}_count"] = queryset.exclude(**{field: []}).count()
 
         return Response(
             {
@@ -191,9 +198,11 @@ class NoteViewSet(ModelViewSet):
             original_data["name"] = f"{original_data['name']} (Copy)"
 
         # Create the new note
-        create_serializer = NoteCreateSerializer(data=original_data)
+        create_serializer = NoteCreateSerializer(
+            data=original_data, context={"request": request}
+        )
         if create_serializer.is_valid():
-            new_note = create_serializer.save()
+            new_note = create_serializer.save(created_by=request.user)
             response_serializer = NoteSerializer(new_note)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         else:
