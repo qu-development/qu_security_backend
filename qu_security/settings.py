@@ -507,3 +507,6 @@ CACHE_TTL = {
     "long": 3600,  # 1 hour
     "very_long": 86400,  # 24 hours
 }
+
+# Guard Import Configuration
+GUARD_DEFAULT_PASSWORD = os.environ.get("GUARD_DEFAULT_PASSWORD", "Guard123!")
