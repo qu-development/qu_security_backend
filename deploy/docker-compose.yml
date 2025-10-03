@@ -19,12 +19,14 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
     networks:
       - qu_security_network
+  memcached:
+    image: memcached:latest
+    ports:
+      - "11211:11211"
+    command: ["memcached", "-m", "64"] # Allocates 64MB of memory
+    restart: unless-stopped
 
   # PostgreSQL Database
   postgres:
