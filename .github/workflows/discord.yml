@@ -1,0 +1,40 @@
+name: Discord Log
+
+on:
+  workflow_run: # fallback to catch any workflow run status
+    workflows: ["*"]
+    types:
+      - completed
+  push:
+  pull_request:
+  issues:
+  issue_comment:
+  release:
+  workflow_dispatch:
+
+jobs:
+  notify-discord:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+      - name: Send Discord notification
+        uses: appleboy/discord-action@v1.2.0
+        with:
+          webhook_url: ${{ secrets.QU_SECURITY_DISCORD_WEBHOOK_URL }}
+          message: |
+            ✅ **GitHub Event Notification**
+
+            📌 **Event:** `${{ github.event_name }}`
+            📂 **Repository:** `${{ github.repository }}`
+            👤 **Actor:** `${{ github.actor }}`
+            🕒 **Time:** `${{ github.event.head_commit.timestamp || github.event.created_at || github.run_started_at }}`
+            🔗 **Run:** [View Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ✏️ **Ref:** `${{ github.ref }}`
+            🗂️ **Workflow:** `${{ github.workflow }}`
+            🏷️ **Job:** `${{ github.job }}`
+            
+            🚀 **Message:** An event of type `${{ github.event_name }}` was triggered by `${{ github.actor }}`.
+
+            _This is an automated log message._ ⚙️
