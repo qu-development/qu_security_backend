@@ -8,7 +8,7 @@ on:
 jobs:
   docker-compose:
     name: Run Docker Compose
-    runs-on: self-hosted
+    runs-on: rolloco
 
     steps:
       - name: Checkout repository
