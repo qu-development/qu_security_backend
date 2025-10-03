@@ -380,14 +380,11 @@ AWS_SQS_DLQ_URL = os.environ.get("AWS_SQS_DLQ_URL")  # Dead Letter Queue
 # Determine environment and endpoint
 IS_AWS_LAMBDA = bool(os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 IS_LOCAL = not IS_AWS_LAMBDA
-if IS_LOCAL:
-    # Force local Memcached for development regardless of env var
-    MEMCACHED_ENDPOINT = "127.0.0.1"
-else:
-    MEMCACHED_ENDPOINT = os.environ.get(
-        "MEMCACHED_ENDPOINT",
-        "qu-security-cache.inu7dr.0001.use2.cache.amazonaws.com",
-    )
+
+MEMCACHED_ENDPOINT = os.environ.get(
+    "MEMCACHED_ENDPOINT",
+    "qu-security-cache.inu7dr.0001.use2.cache.amazonaws.com",
+)
 MEMCACHED_PORT = int(os.environ.get("MEMCACHED_PORT", "11211"))
 
 # Toggle Memcached usage. Prefer Memcached; default to True in local development.
