@@ -21,4 +21,4 @@ jobs:
           git secret reveal
       - name: Build and run containers
         run: |
-          docker compose --file deploy/docker-compose.yml up -d --build
+          docker compose --file deploy/docker-compose.yml --project-name=qu_security up -d --build --remove-orphans
