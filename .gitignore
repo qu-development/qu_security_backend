@@ -93,3 +93,5 @@ docs/_build/
 
 # Guard Reports
 guard_reports/
+.gitsecret/keys/random_seed
+!*.secret

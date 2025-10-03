@@ -9,18 +9,7 @@ services:
     container_name: qu_security_web
     ports:
       - "127.0.0.1:1111:8000"
-    environment:
-      - DEBUG=True
-      - DB_HOST=postgres
-      - DB_NAME=qu_security_db
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_PORT=5432
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=amqp://qu_user:qu_password@rabbitmq:5672//
-      - USE_S3=False
-      - SECRET_KEY=django-insecure-development-key-change-in-production
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+    env_file: ./env
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
