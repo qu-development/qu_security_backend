@@ -1,0 +1,211 @@
+version: '3.8'
+
+services:
+  # Main Django application
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: qu_security_web
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DB_HOST=postgres
+      - DB_NAME=qu_security_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://qu_user:qu_password@rabbitmq:5672//
+      - MEMCACHED_ENDPOINT=memcached
+      - MEMCACHED_PORT=11211
+      - USE_MEMCACHED=True
+      - USE_S3=False
+      - SECRET_KEY=django-insecure-development-key-change-in-production
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+    volumes:
+      - ..:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      memcached:
+        condition: service_started
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    networks:
+      - qu_security_network
+
+  # Celery worker for async tasks
+  celery:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: qu_security_celery
+    environment:
+      - DEBUG=True
+      - DB_HOST=postgres
+      - DB_NAME=qu_security_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://qu_user:qu_password@rabbitmq:5672//
+      - MEMCACHED_ENDPOINT=memcached
+      - MEMCACHED_PORT=11211
+      - USE_MEMCACHED=True
+      - USE_S3=False
+      - SECRET_KEY=django-insecure-development-key-change-in-production
+    volumes:
+      - ..:/app
+      - media_volume:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: celery -A qu_security worker --loglevel=info
+    networks:
+      - qu_security_network
+
+  # Celery beat scheduler (if needed for periodic tasks)
+  celery-beat:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: qu_security_celery_beat
+    environment:
+      - DEBUG=True
+      - DB_HOST=postgres
+      - DB_NAME=qu_security_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=amqp://qu_user:qu_password@rabbitmq:5672//
+      - MEMCACHED_ENDPOINT=memcached
+      - MEMCACHED_PORT=11211
+      - USE_MEMCACHED=True
+      - USE_S3=False
+      - SECRET_KEY=django-insecure-development-key-change-in-production
+    volumes:
+      - ..:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: celery -A qu_security beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    networks:
+      - qu_security_network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: qu_security_postgres
+    environment:
+      POSTGRES_DB: qu_security_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qu_security_network
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: qu_security_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - qu_security_network
+
+  # RabbitMQ for task queue
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: qu_security_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: qu_user
+      RABBITMQ_DEFAULT_PASS: qu_password
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"    # AMQP port
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+    networks:
+      - qu_security_network
+
+  # Memcached for caching
+  memcached:
+    image: memcached:1.6-alpine
+    container_name: qu_security_memcached
+    ports:
+      - "11211:11211"
+    command: memcached -m 64m
+    networks:
+      - qu_security_network
+
+  # Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: qu_security_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    depends_on:
+      - web
+    networks:
+      - qu_security_network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
+
+networks:
+  qu_security_network:
+    driver: bridge
