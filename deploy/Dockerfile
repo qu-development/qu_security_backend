@@ -1,62 +1,26 @@
-# Use Python 3.11 as base image (as specified in pyproject.toml)
-FROM python:3.11-slim
+FROM python:3-alpine
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
-    DJANGO_SETTINGS_MODULE=qu_security.settings
+ENV NO_I18N=False
+ENV SECRET_KEY=randomsecret123!@#
+RUN apk add --no-cache gettext-dev
 
-# Set work directory
-WORKDIR /app
+# Install a WSGI server to serve our files, later this should also include daphne to serve ASGI in case is needed with a conditional script based on a build argument
+RUN [ -z "$USE_DAPHNE" ] || [ "$USE_DAPHNE" = "True" ] && pip install daphne || pip install gunicorn
 
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        libpq-dev \
-        curl \
-        git \
-        gcc \
-        libc6-dev \
-        libffi-dev \
-        libssl-dev \
-        pkg-config \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+COPY ./entrypoint.sh /entrypoint.sh
 
-# Install Python dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+RUN chmod +x /entrypoint.sh
 
-# Install additional packages for production (if needed)
-RUN pip install --no-cache-dir \
-    gunicorn \
-    celery[redis] \
-    django-celery-beat \
-    redis
+COPY ./ /app/
 
-# Copy project files
-COPY . /app/
+# This is at this place to make this instruction not to invalid the previous one 
+ARG REQUIREMENTS_BASE_FOLDER=.
+ARG STATICFILES_PATH=/app/static/
 
-# Create directories for static and media files
-RUN mkdir -p /app/staticfiles /app/media
+WORKDIR /app/
 
-# Create a non-root user to run the application
-RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
-USER app
+# Install your requirements from a requirements.txt file (support for poetry, pipenv should also be included at some point)
+RUN pip install -r ${REQUIREMENTS_BASE_FOLDER}/requirements.txt
 
-# Collect static files (will be overridden in docker-compose command)
-RUN python manage.py collectstatic --noinput || echo "Static files collection failed, will retry on startup"
 
-# Expose port
-EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/admin/ || exit 1
-
-# Default command (can be overridden in docker-compose)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "qu_security.wsgi:application"]
+ENTRYPOINT ["/entrypoint.sh"]

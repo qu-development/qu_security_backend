@@ -22,7 +22,6 @@ services:
       - SECRET_KEY=django-insecure-development-key-change-in-production
       - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
     volumes:
-      - ..:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
