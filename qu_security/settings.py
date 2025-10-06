@@ -117,9 +117,9 @@ if os.environ.get("AWS_EXECUTION_ENV"):
             "PASSWORD": os.environ.get("RDS_PASSWORD", "postgres"),
             "HOST": os.environ.get("RDS_HOSTNAME", "localhost"),
             "PORT": os.environ.get("RDS_PORT", "5432"),
-            "OPTIONS": {
-                "sslmode": "require",
-            },
+            #"OPTIONS": {
+            #    "sslmode": "require",
+            #},
         }
     }
 else:
