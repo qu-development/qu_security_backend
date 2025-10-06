@@ -26,7 +26,7 @@ services:
   memcached:
     image: memcached:latest
     ports:
-      - "11211:11211"
+      - "11214:11211"
     command: ["memcached", "-m", "64"] # Allocates 64MB of memory
     restart: unless-stopped
     networks:
@@ -38,8 +38,8 @@ services:
     container_name: qu_security_postgres
     environment:
       POSTGRES_DB: qu_security_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: qu_security
+      POSTGRES_PASSWORD: 417d5f58b5dd5e33ed046930510afb0ae676ba1cbc8bfc75e227eedd9c14a3a7
     ports:
       - "9432:5432"
     volumes:
@@ -57,7 +57,7 @@ services:
     image: redis:7-alpine
     container_name: qu_security_redis
     ports:
-      - "6379:6379"
+      - "6779:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
@@ -78,8 +78,8 @@ services:
       RABBITMQ_DEFAULT_PASS: qu_password
       RABBITMQ_DEFAULT_VHOST: /
     ports:
-      - "5672:5672"    # AMQP port
-      - "15672:15672"  # Management UI
+      - "5679:5672"    # AMQP port
+      - "15679:15672"  # Management UI
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
