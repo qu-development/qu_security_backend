@@ -391,6 +391,9 @@ MEMCACHED_PORT = int(os.environ.get("MEMCACHED_PORT", "11211"))
 USE_MEMCACHED = (
     os.environ.get("USE_MEMCACHED", "True" if IS_LOCAL else "False").lower() == "true"
 )
+USE_REDIS = (
+    os.environ.get("USE_REDIS", "True" if IS_LOCAL else "False").lower() == "true"
+)
 
 
 def check_memcached_connection(host, port):
@@ -430,10 +433,41 @@ def check_memcached_connection(host, port):
         )
         return False
 
-
+REDIS_HOST = os.environ.get(
+    "REDIS_HOST",
+    "redis",
+)
+REDIS_PORT = os.environ.get(
+    "REDIS_PORT",
+    "6779",
+)
+REDIS_DB_DEFAULT = os.environ.get(
+    "REDIS_DB_DEFAULT",
+    "redis_default",
+)
+REDIS_DB_SESSION = os.environ.get(
+    "REDIS_DB_SESSION",
+    "redis_session",
+)
 # Configure cache backend with preference: Memcached -> LocMem
 # We'll perform a simple connectivity check and fall back to LocMem if needed
-if USE_MEMCACHED:
+if USE_REDIS:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB_DEFAULT}",
+            "KEY_PREFIX": "qu_security",
+            "TIMEOUT": 300,
+        },
+        "session": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB_SESSION}",
+            "KEY_PREFIX": "qu_security_session",
+            "TIMEOUT": 3600,
+        },
+    }
+    logger.info(f"✅ Using Redis cache at {REDIS_HOST}:{REDIS_PORT}")
+elif USE_MEMCACHED:
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
