@@ -62,3 +62,4 @@ pbr
 pymemcache==4.0.0
 celery==5.5.3
 gunicorn==23.0.0
+redis
