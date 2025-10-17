@@ -2,7 +2,15 @@ FROM python:3-alpine
 
 ENV NO_I18N=False
 ENV SECRET_KEY=randomsecret123!@#
-RUN apk add --no-cache gettext-dev
+
+RUN apk add --no-cache \
+    build-base \
+    gcc \
+    musl-dev \
+    python3-dev \
+    libffi-dev \
+    openssl-dev \
+    gettext-dev
 
 # Install a WSGI server to serve our files, later this should also include daphne to serve ASGI in case is needed with a conditional script based on a build argument
 RUN [ -z "$USE_DAPHNE" ] || [ "$USE_DAPHNE" = "True" ] && pip install daphne || pip install gunicorn
