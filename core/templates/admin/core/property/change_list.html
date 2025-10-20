@@ -1,0 +1,19 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block object-tools %}
+  <ul class="object-tools">
+    {% if has_add_permission %}
+      <li>
+        <a href="{% url 'admin:core_property_import_excel' %}" class="addlink">
+          {% trans 'Import from Excel' %}
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'admin:core_property_add' %}" class="addlink">
+          {% trans 'Add' %} {% trans opts.verbose_name %}
+        </a>
+      </li>
+    {% endif %}
+  </ul>
+{% endblock %}

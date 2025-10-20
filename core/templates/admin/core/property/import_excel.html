@@ -1,0 +1,105 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}{% trans 'Import Properties from Excel' %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:core_property_changelist' %}">{% trans 'Properties' %}</a>
+&rsaquo; {% trans 'Import from Excel' %}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{% trans 'Import Properties from Excel' %}</h1>
+
+<div class="module aligned">
+    <h2>{% trans 'Upload Excel File' %}</h2>
+
+    <div class="form-row">
+        <div class="field-box">
+            <h3>{% trans 'Expected Excel Format:' %}</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>PROPERTY NAME</th>
+                        <th>SOBRE NOMBRE</th>
+                        <th>PROPERTY OWNER</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Keegans Meadow 11753 West Bellfort Ave. Stafford, Texas 77008</td>
+                        <td>Keegans</td>
+                        <td>Brixmor Group</td>
+                    </tr>
+                    <tr>
+                        <td>Merchant Park North 1303-1421 W. 11th Street, Houston, Texas 77008</td>
+                        <td>Shepherd</td>
+                        <td>Brixmor Group</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-row">
+            {{ form.excel_file.label_tag }}
+            {{ form.excel_file }}
+            {% if form.excel_file.help_text %}
+                <p class="help">{{ form.excel_file.help_text }}</p>
+            {% endif %}
+            {% if form.excel_file.errors %}
+                <ul class="errorlist">
+                    {% for error in form.excel_file.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-row">
+            {{ form.create_clients }}
+            {{ form.create_clients.label_tag }}
+            {% if form.create_clients.help_text %}
+                <p class="help">{{ form.create_clients.help_text }}</p>
+            {% endif %}
+        </div>
+
+        <div class="submit-row">
+            <input type="submit" value="{% trans 'Import Properties' %}" class="default" />
+            <a href="{% url 'admin:core_property_changelist' %}" class="button cancel-link">{% trans 'Cancel' %}</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+.table th, .table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.field-box {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+</style>
+{% endblock %}
