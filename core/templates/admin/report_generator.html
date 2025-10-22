@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel Report Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h3 {
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .model-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .model-option input {
+            margin-right: 10px;
+        }
+        .model-option label {
+            font-weight: 500;
+            color: #333;
+        }
+        .filename-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: #007cba;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .generate-btn:hover {
+            background: #005a87;
+        }
+        .generate-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .info {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .info h4 {
+            margin: 0 0 10px 0;
+            color: #0066cc;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Excel Report Generator</h1>
+
+        <div class="info">
+            <h4>Available Models</h4>
+            <p>Select the data models you want to include in your Excel report. Each model will be exported as a separate sheet.</p>
+        </div>
+
+        <form id="reportForm">
+            <div class="section">
+                <h3>Select Models to Export:</h3>
+                <div class="model-grid">
+                    <div class="model-option">
+                        <input type="checkbox" id="guard" name="models" value="guard">
+                        <label for="guard">Guards</label>
+                    </div>
+                    <div class="model-option">
+                        <input type="checkbox" id="property" name="models" value="property">
+                        <label for="property">Properties</label>
+                    </div>
+                    <div class="model-option">
+                        <input type="checkbox" id="shift" name="models" value="shift">
+                        <label for="shift">Shifts</label>
+                    </div>
+                    <div class="model-option">
+                        <input type="checkbox" id="client" name="models" value="client">
+                        <label for="client">Clients</label>
+                    </div>
+                    <div class="model-option">
+                        <input type="checkbox" id="user" name="models" value="user">
+                        <label for="user">Users</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>Report Filename:</h3>
+                <input type="text"
+                       id="filename"
+                       class="filename-input"
+                       placeholder="Enter filename (e.g., monthly_report_2025_10.xlsx)"
+                       value="">
+            </div>
+
+            <button type="submit" class="generate-btn" id="generateBtn">
+                📁 Generate Excel Report
+            </button>
+        </form>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default filename
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0].replace(/-/g, '_');
+            document.getElementById('filename').value = `report_${dateStr}.xlsx`;
+
+            // Form submission
+            document.getElementById('reportForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const formData = new FormData(e.target);
+                const selectedModels = formData.getAll('models');
+                const filename = formData.get('filename') || `report_${Date.now()}.xlsx`;
+
+                if (selectedModels.length === 0) {
+                    showStatus('Please select at least one model to export.', 'error');
+                    return;
+                }
+
+                const generateBtn = document.getElementById('generateBtn');
+                generateBtn.disabled = true;
+                generateBtn.textContent = '⏳ Generating Report...';
+
+                try {
+                    // Get CSRF token
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                                    getCookie('csrftoken');
+
+                    const response = await fetch('/api/reports/generate-excel/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({
+                            models: selectedModels,
+                            filename: filename
+                        })
+                    });
+
+                    if (response.ok) {
+                        // Download the file with proper MIME type
+                        const blob = await response.blob();
+
+                        // Ensure proper filename with .xlsx extension
+                        let downloadFilename = filename;
+                        if (!downloadFilename.endsWith('.xlsx')) {
+                            downloadFilename = `${downloadFilename}.xlsx`;
+                        }
+
+                        // Create download link with proper MIME type
+                        const url = window.URL.createObjectURL(new Blob([blob], {
+                            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        }));
+
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = downloadFilename;
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.click();
+
+                        // Cleanup
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                        }, 100);
+
+                        showStatus(`Report "${downloadFilename}" generated successfully!`, 'success');
+                    } else {
+                        const errorData = await response.json();
+                        showStatus(`Error: ${errorData.error || 'Failed to generate report'}`, 'error');
+                    }
+                } catch (error) {
+                    showStatus(`Error: ${error.message}`, 'error');
+                } finally {
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = '📁 Generate Excel Report';
+                }
+            });
+        });
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>

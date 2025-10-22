@@ -2,7 +2,9 @@
 Core views for the application
 """
 
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render
 from django.utils.translation import gettext as _
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -39,3 +41,16 @@ def jwt_demo(request):
         return HttpResponse(html_content, content_type="text/html")
     except FileNotFoundError:
         return HttpResponse("Demo file not found", status=404)
+
+
+@login_required
+def report_generator(request):
+    """View for the Excel report generator interface"""
+    return render(
+        request,
+        "admin/report_generator.html",
+        {
+            "title": "Excel Report Generator",
+            "user": request.user,
+        },
+    )

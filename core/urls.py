@@ -49,6 +49,10 @@ urlpatterns = [
     path("health/", views.health_check, name="health-check"),
     # JWT Demo endpoint
     path("demo/", views.jwt_demo, name="jwt-demo"),
+    # Report generator interface
+    path("report-generator/", views.report_generator, name="report-generator"),
+    # Report generation endpoints
+    path("reports/", include("core.api.report_urls"), name="reports"),
     # API endpoints
     path("", include(router.urls)),
 ]

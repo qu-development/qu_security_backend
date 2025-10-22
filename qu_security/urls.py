@@ -50,21 +50,15 @@ urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
     # Root URL redirects to Swagger
     path("", redirect_to_swagger, name="root-redirect"),
-]
-
-# Internationalized URL patterns
-urlpatterns += i18n_patterns(
-    # Admin panel
-    path("admin/", admin.site.urls),
-    # API endpoints
+    # API endpoints (outside i18n_patterns to avoid language prefix)
     path("api/", include("core.urls")),
     # Mobile API endpoints
     path("api/mobile/", include("mobile.urls")),
     # Common endpoints
     path("api/common/", include("common.urls")),
-    # Permission-secured endpoints
+    # Permission-secured endpoints (non-i18n)
     path("", include("permissions.urls")),
-    # Swagger/OpenAPI documentation
+    # Swagger/OpenAPI documentation (available without language prefix)
     path(
         "swagger<format>/", schema_view.without_ui(cache_timeout=0), name="schema-json"
     ),
@@ -74,6 +68,12 @@ urlpatterns += i18n_patterns(
         name="schema-swagger-ui",
     ),
     path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
+]
+
+# Internationalized URL patterns (only for admin and other i18n content)
+urlpatterns += i18n_patterns(
+    # Admin panel (needs internationalization)
+    path("admin/", admin.site.urls),
 )
 
 # Serve static and media files in development
