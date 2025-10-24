@@ -7,6 +7,7 @@ RUN apk add --no-cache \
     linux-headers \
     openblas-dev \ 
     build-base \
+    postgresql-dev \ 
     gcc \
     musl-dev \
     python3-dev \
