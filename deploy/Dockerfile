@@ -4,8 +4,8 @@ ENV NO_I18N=False
 ENV SECRET_KEY=randomsecret123!@#
 
 RUN apk add --no-cache \
-    linux-headers \  # 👈 ¡ESSENTIAL! Soluciona el error PATH_MAX
-    openblas-dev \   # 👈 Recomendado para pandas/numpy
+    linux-headers \
+    openblas-dev \ 
     build-base \
     gcc \
     musl-dev \
