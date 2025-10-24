@@ -14,6 +14,8 @@ RUN apk add --no-cache \
     openssl-dev \
     gettext-dev
 
+ENV CFLAGS="-D_DEFAULT_SOURCE"
+
 # Install a WSGI server to serve our files, later this should also include daphne to serve ASGI in case is needed with a conditional script based on a build argument
 RUN [ -z "$USE_DAPHNE" ] || [ "$USE_DAPHNE" = "True" ] && pip install daphne || pip install gunicorn
 
